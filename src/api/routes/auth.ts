@@ -88,10 +88,6 @@ auth.post('/login',
     const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1);
     if (!user) throw unauthorized('Invalid credentials');
 
-    // If user has passkeys, password login is disabled
-    const userPasskeys = await db.select({ id: passkeys.id }).from(passkeys).where(eq(passkeys.userId, user.id)).limit(1);
-    if (userPasskeys.length > 0) throw badRequest('This account uses passkey authentication. Please sign in with your passkey.');
-
     const valid = await verifyPassword(password, user.passwordHash);
     if (!valid) throw unauthorized('Invalid credentials');
 
