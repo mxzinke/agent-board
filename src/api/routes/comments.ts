@@ -8,6 +8,7 @@ import { authMiddleware } from '../middleware/auth';
 import { suspensionMiddleware } from '../middleware/suspension';
 import { rateLimitMiddleware } from '../middleware/rateLimit';
 import { notFound, forbidden } from '../lib/errors';
+import { config } from '../../config';
 
 const commentsRouter = new Hono();
 commentsRouter.use('*', authMiddleware);
@@ -69,8 +70,8 @@ commentsRouter.post('/goals/:goalId/comments',
     todayStart.setHours(0, 0, 0, 0);
     const [commentCount] = await db.select({ cnt: count() }).from(comments)
       .where(and(eq(comments.authorId, sub), gte(comments.createdAt, todayStart)));
-    if (commentCount.cnt >= 500) {
-      return c.json({ error: 'Daily comment limit reached (500)' }, 429);
+    if (commentCount.cnt >= config.maxCommentsPerDay) {
+      return c.json({ error: `Daily comment limit reached (${config.maxCommentsPerDay})` }, 429);
     }
 
     const [comment] = await db.insert(comments).values({

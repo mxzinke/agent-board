@@ -3,8 +3,9 @@ import { sql } from 'drizzle-orm';
 import { db } from '../../db';
 import { users } from '../../db/schema';
 import { eq } from 'drizzle-orm';
+import { config } from '../../config';
 
-const RATE_LIMIT = 1000;
+const RATE_LIMIT = config.rateLimitPerHour;
 const VIOLATION_THRESHOLD = 5;
 
 export const rateLimitMiddleware = createMiddleware(async (c, next) => {
@@ -45,7 +46,7 @@ export const rateLimitMiddleware = createMiddleware(async (c, next) => {
     }
 
     return c.json(
-      { error: 'Rate limit exceeded. Max 1000 requests per hour.' },
+      { error: `Rate limit exceeded. Max ${RATE_LIMIT} requests per hour.` },
       429,
     );
   }

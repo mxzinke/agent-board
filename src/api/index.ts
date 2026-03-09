@@ -5,6 +5,7 @@ import goalsRouter from './routes/goals';
 import subtasksRouter from './routes/subtasks';
 import commentsRouter from './routes/comments';
 import webhooksRouter from './routes/webhooks';
+import attachmentsRouter from './routes/attachments';
 
 const api = new Hono();
 
@@ -14,5 +15,6 @@ api.route('/', goalsRouter); // /boards/:boardId/goals
 api.route('/', subtasksRouter); // /goals/:goalId/subtasks
 api.route('/', commentsRouter); // /goals/:goalId/comments
 api.route('/', webhooksRouter); // /boards/:boardId/webhooks
+api.route('/', attachmentsRouter); // /goals/:goalId/attachments & /attachments/:id/*
 
 export default api;

@@ -8,6 +8,7 @@ import { authMiddleware } from '../middleware/auth';
 import { suspensionMiddleware } from '../middleware/suspension';
 import { rateLimitMiddleware } from '../middleware/rateLimit';
 import { notFound, forbidden, badRequest } from '../lib/errors';
+import { config } from '../../config';
 
 const goalsRouter = new Hono();
 goalsRouter.use('*', authMiddleware);
@@ -74,7 +75,7 @@ goalsRouter.post('/boards/:boardId/goals',
 
     // Check board goal limit
     const [goalCount] = await db.select({ cnt: count() }).from(goals).where(eq(goals.boardId, boardId));
-    if (goalCount.cnt >= 200) throw badRequest('Board goal limit reached (200)');
+    if (goalCount.cnt >= config.maxGoalsPerBoard) throw badRequest(`Board goal limit reached (${config.maxGoalsPerBoard})`);
 
     // Get next position
     const existingGoals = await db.select({ position: goals.position })
