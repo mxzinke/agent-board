@@ -11,7 +11,7 @@ import { Nav } from './components/Nav';
 import { InstallPrompt } from './components/InstallPrompt';
 
 export function App() {
-  const { user, checkAuth, currentBoard, selectedGoal, loadFromPath } = useStore();
+  const { user, checkAuth, currentBoard, selectedGoal, setCurrentBoard, setSelectedGoal, loadFromPath } = useStore();
   const [ready, setReady] = useState(false);
   const { path, navigate } = useRouter();
 
@@ -23,6 +23,30 @@ export function App() {
       }
     }).finally(() => setReady(true));
   }, []);
+
+  // Sync store state when path changes (back/forward gesture)
+  useEffect(() => {
+    if (!ready || !user) return;
+    const goalMatch = path.match(/^\/b\/([^/]+)\/([^/]+)$/);
+    const boardMatch = path.match(/^\/b\/([^/]+)$/);
+
+    if (path === '/' || path === '/settings') {
+      setSelectedGoal(null);
+      setCurrentBoard(null);
+    } else if (boardMatch && !goalMatch) {
+      // Going back to board from goal — clear selectedGoal
+      setSelectedGoal(null);
+      // If board doesn't match, load it
+      if (currentBoard?.id !== boardMatch[1]) {
+        loadFromPath(path);
+      }
+    } else if (goalMatch) {
+      // If board/goal don't match current state, reload
+      if (currentBoard?.id !== goalMatch[1] || selectedGoal?.id !== goalMatch[2]) {
+        loadFromPath(path);
+      }
+    }
+  }, [path]);
 
   if (!ready) return <div className="flex items-center justify-center h-screen text-zinc-400 dark:text-zinc-500">Loading...</div>;
 

@@ -48,19 +48,18 @@ export function Nav({ navigate, path }: NavProps) {
             <Logo className="w-5 h-5" />
             <span className="hidden sm:inline">agent-board</span>
           </button>
-          {/* Breadcrumbs - desktop only */}
           {isSettings && (
-            <span className="hidden sm:flex items-center gap-3">
+            <span className="flex items-center gap-2 sm:gap-3">
               <span className="text-zinc-300 dark:text-zinc-600">/</span>
               <span className="text-zinc-600 dark:text-zinc-400">Settings</span>
             </span>
           )}
           {!isSettings && currentBoard && (
-            <span className="hidden sm:flex items-center gap-3">
+            <span className="flex items-center gap-2 sm:gap-3 min-w-0">
               <span className="text-zinc-300 dark:text-zinc-600">/</span>
               <button
                 onClick={handleBoardClick}
-                className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 max-w-32 truncate"
+                className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 max-w-24 sm:max-w-40 truncate"
               >
                 {currentBoard.name}
               </button>
@@ -84,22 +83,22 @@ export function Nav({ navigate, path }: NavProps) {
             title={`Theme: ${theme}`}
           >
             {theme === 'light' ? (
-              <Sun className="w-4 h-4" />
+              <Sun className="w-5 h-5" />
             ) : theme === 'dark' ? (
-              <Moon className="w-4 h-4" />
+              <Moon className="w-5 h-5" />
             ) : (
-              <Monitor className="w-4 h-4" />
+              <Monitor className="w-5 h-5" />
             )}
           </button>
           <button
             onClick={() => navigate('/settings')}
             className={`flex items-center text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 ${isSettings ? 'text-zinc-900 dark:text-zinc-100' : ''}`}
           >
-            <Settings className="w-4 h-4" />
+            <Settings className="w-5 h-5" />
             <span className="hidden sm:inline ml-1">Settings</span>
           </button>
           <button onClick={handleLogout} className="flex items-center text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100">
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-5 h-5" />
             <span className="hidden sm:inline ml-1">Logout</span>
           </button>
         </div>
