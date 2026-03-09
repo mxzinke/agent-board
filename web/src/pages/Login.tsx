@@ -30,10 +30,10 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white px-4">
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-zinc-950 px-4">
       <div className="w-full max-w-sm">
-        <h1 className="text-xl font-bold text-zinc-900 mb-1">agent-board</h1>
-        <p className="text-sm text-zinc-400 mb-8">
+        <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-1">agent-board</h1>
+        <p className="text-sm text-zinc-400 dark:text-zinc-500 mb-8">
           {isRegister ? 'Create an account' : 'Sign in to your account'}
         </p>
 
@@ -43,7 +43,7 @@ export function Login() {
             placeholder="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full px-3 py-2 border border-zinc-200 bg-white text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-zinc-900"
+            className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
             required
           />
           <input
@@ -51,7 +51,7 @@ export function Login() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-3 py-2 border border-zinc-200 bg-white text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-zinc-900"
+            className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
             required
           />
           {isRegister && (
@@ -60,7 +60,7 @@ export function Login() {
               placeholder="Display name (optional)"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full px-3 py-2 border border-zinc-200 bg-white text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-zinc-900"
+              className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
             />
           )}
 
@@ -69,7 +69,7 @@ export function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-800 disabled:opacity-50"
+            className="w-full py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 text-sm font-medium hover:bg-zinc-800 dark:hover:bg-zinc-200 disabled:opacity-50"
           >
             {loading ? '...' : isRegister ? 'Create account' : 'Sign in'}
           </button>
@@ -78,9 +78,9 @@ export function Login() {
         {!isRegister && (
           <>
             <div className="flex items-center gap-3 my-4">
-              <div className="flex-1 h-px bg-zinc-200" />
-              <span className="text-xs text-zinc-400">or</span>
-              <div className="flex-1 h-px bg-zinc-200" />
+              <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
+              <span className="text-xs text-zinc-400 dark:text-zinc-500">or</span>
+              <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
             </div>
             <button
               type="button"
@@ -99,7 +99,7 @@ export function Login() {
                   setPasskeyLoading(false);
                 }
               }}
-              className="w-full py-2 border border-zinc-200 text-zinc-700 text-sm font-medium hover:bg-zinc-50 disabled:opacity-50"
+              className="w-full py-2 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-900 disabled:opacity-50"
             >
               {passkeyLoading ? '...' : 'Sign in with Passkey'}
             </button>
@@ -108,7 +108,7 @@ export function Login() {
 
         <button
           onClick={() => { setIsRegister(!isRegister); setError(''); }}
-          className="mt-4 text-sm text-zinc-400 hover:text-zinc-600"
+          className="mt-4 text-sm text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400"
         >
           {isRegister ? 'Already have an account? Sign in' : "Don't have an account? Create one"}
         </button>

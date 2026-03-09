@@ -16,7 +16,7 @@ export function App() {
     checkAuth().finally(() => setReady(true));
   }, []);
 
-  if (!ready) return <div className="flex items-center justify-center h-screen text-zinc-400">Loading...</div>;
+  if (!ready) return <div className="flex items-center justify-center h-screen text-zinc-400 dark:text-zinc-500">Loading...</div>;
 
   // Handle join links
   if (window.location.pathname.startsWith('/join/')) {
@@ -27,7 +27,7 @@ export function App() {
   if (!user) return <Login />;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-zinc-950">
       <Nav />
       <main className="max-w-7xl mx-auto px-4 py-6">
         {view === 'settings' ? (

@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-accent: #18181b;
   --color-accent-light: #27272a;
@@ -13,6 +15,11 @@ body {
   background: #ffffff;
   color: #18181b;
   -webkit-font-smoothing: antialiased;
+}
+
+.dark body, body.dark {
+  background: #09090b;
+  color: #fafafa;
 }
 
 * {

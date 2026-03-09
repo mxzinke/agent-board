@@ -83,7 +83,7 @@ export function GoalDetail() {
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-zinc-200 text-lg font-bold focus:outline-none focus:border-zinc-900"
+              className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-lg font-bold text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
               autoFocus
             />
             <textarea
@@ -91,23 +91,23 @@ export function GoalDetail() {
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
               placeholder="Description..."
-              className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-zinc-900 resize-none"
+              className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100 resize-none"
             />
             <div className="flex gap-2">
-              <button onClick={handleSave} className="px-3 py-1.5 text-sm bg-zinc-900 text-white">Save</button>
-              <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-sm text-zinc-400">Cancel</button>
+              <button onClick={handleSave} className="px-3 py-1.5 text-sm bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950">Save</button>
+              <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-sm text-zinc-400 dark:text-zinc-500">Cancel</button>
             </div>
           </div>
         ) : (
           <div>
             <h2
-              className="text-lg font-bold text-zinc-900 cursor-pointer hover:text-zinc-600"
+              className="text-lg font-bold text-zinc-900 dark:text-zinc-100 cursor-pointer hover:text-zinc-600 dark:hover:text-zinc-400"
               onClick={() => { setEditing(true); setTitle(selectedGoal.title); setDescription(selectedGoal.description || ''); }}
             >
               {selectedGoal.title}
             </h2>
             {selectedGoal.description && (
-              <p className="text-sm text-zinc-500 mt-2 whitespace-pre-wrap">{selectedGoal.description}</p>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 whitespace-pre-wrap">{selectedGoal.description}</p>
             )}
           </div>
         )}
@@ -121,8 +121,8 @@ export function GoalDetail() {
             onClick={() => handleStatusChange(s)}
             className={`px-2 py-1 text-xs border ${
               selectedGoal.status === s
-                ? 'bg-zinc-900 text-white border-zinc-900'
-                : 'border-zinc-200 text-zinc-400 hover:border-zinc-400'
+                ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 border-zinc-900 dark:border-zinc-100'
+                : 'border-zinc-200 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 hover:border-zinc-400 dark:hover:border-zinc-500'
             }`}
           >
             {STATUS_LABELS[s]}
@@ -133,15 +133,15 @@ export function GoalDetail() {
       {/* Subtasks */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
+          <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
             Subtasks {subtasksTotal > 0 && `(${subtasksDone}/${subtasksTotal})`}
           </h3>
         </div>
 
         {subtasksTotal > 0 && (
-          <div className="w-full h-1 bg-zinc-100 mb-3">
+          <div className="w-full h-1 bg-zinc-100 dark:bg-zinc-800 mb-3">
             <div
-              className="h-1 bg-zinc-900 transition-all"
+              className="h-1 bg-zinc-900 dark:bg-zinc-100 transition-all"
               style={{ width: `${(subtasksDone / subtasksTotal) * 100}%` }}
             />
           </div>
@@ -153,19 +153,19 @@ export function GoalDetail() {
               <button
                 onClick={() => handleToggleSubtask(subtask.id, !subtask.done)}
                 className={`w-4 h-4 border flex-shrink-0 flex items-center justify-center text-xs ${
-                  subtask.done ? 'bg-zinc-900 border-zinc-900 text-white' : 'border-zinc-300 hover:border-zinc-500'
+                  subtask.done ? 'bg-zinc-900 dark:bg-zinc-100 border-zinc-900 dark:border-zinc-100 text-white dark:text-zinc-950' : 'border-zinc-300 dark:border-zinc-600 hover:border-zinc-500 dark:hover:border-zinc-400'
                 }`}
               >
                 {subtask.done && '\u2713'}
               </button>
-              <span className={`text-sm flex-1 ${subtask.done ? 'line-through text-zinc-300' : 'text-zinc-700'}`}>
+              <span className={`text-sm flex-1 ${subtask.done ? 'line-through text-zinc-300 dark:text-zinc-600' : 'text-zinc-700 dark:text-zinc-300'}`}>
                 {subtask.title}
               </span>
               <button
                 onClick={() => handleDeleteSubtask(subtask.id)}
-                className="text-xs text-zinc-300 hover:text-red-500 opacity-0 group-hover:opacity-100"
+                className="text-xs text-zinc-300 dark:text-zinc-600 hover:text-red-500 opacity-0 group-hover:opacity-100"
               >
-                \u2715
+                {'\u2715'}
               </button>
             </div>
           ))}
@@ -178,33 +178,33 @@ export function GoalDetail() {
             value={newSubtask}
             onChange={(e) => setNewSubtask(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
-            className="flex-1 px-2 py-1 border border-zinc-200 text-sm focus:outline-none focus:border-zinc-900"
+            className="flex-1 px-2 py-1 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
           />
-          <button onClick={handleAddSubtask} className="px-2 py-1 text-xs bg-zinc-900 text-white">Add</button>
+          <button onClick={handleAddSubtask} className="px-2 py-1 text-xs bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950">Add</button>
         </div>
       </div>
 
       {/* Comments */}
       <div className="mb-6">
-        <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-3">
+        <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-3">
           Discussion ({selectedGoal.comments?.length || 0})
         </h3>
 
         <div className="space-y-3 mb-4">
           {selectedGoal.comments?.map((comment: any) => (
-            <div key={comment.id} className="border-l-2 border-zinc-100 pl-3">
+            <div key={comment.id} className="border-l-2 border-zinc-100 dark:border-zinc-800 pl-3">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-medium text-zinc-700">
+                <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
                   {comment.authorDisplayName || comment.authorUsername}
                 </span>
                 {comment.authorIsAgent && (
-                  <span className="text-xs bg-zinc-100 px-1 py-0.5 text-zinc-400 border border-zinc-200">agent</span>
+                  <span className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 text-zinc-400 dark:text-zinc-500 border border-zinc-200 dark:border-zinc-700">agent</span>
                 )}
-                <span className="text-xs text-zinc-300">
+                <span className="text-xs text-zinc-300 dark:text-zinc-600">
                   {new Date(comment.createdAt).toLocaleString()}
                 </span>
               </div>
-              <p className="text-sm text-zinc-600 whitespace-pre-wrap">{comment.body}</p>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap">{comment.body}</p>
             </div>
           ))}
         </div>
@@ -215,12 +215,12 @@ export function GoalDetail() {
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             rows={2}
-            className="flex-1 px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-zinc-900 resize-none"
+            className="flex-1 px-3 py-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100 resize-none"
           />
           <button
             onClick={handleAddComment}
             disabled={!newComment.trim()}
-            className="self-end px-3 py-2 text-xs bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-30"
+            className="self-end px-3 py-2 text-xs bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-zinc-200 disabled:opacity-30"
           >
             Send
           </button>
@@ -228,8 +228,8 @@ export function GoalDetail() {
       </div>
 
       {/* Danger zone */}
-      <div className="border-t border-zinc-100 pt-4">
-        <button onClick={handleDelete} className="text-xs text-zinc-300 hover:text-red-500">
+      <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
+        <button onClick={handleDelete} className="text-xs text-zinc-300 dark:text-zinc-600 hover:text-red-500">
           Delete goal
         </button>
       </div>

@@ -148,29 +148,29 @@ export function Settings() {
     return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
-  const inputClass = 'w-full px-3 py-2 border border-zinc-200 bg-white text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-zinc-900';
-  const btnPrimary = 'px-4 py-2 bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-800 disabled:opacity-50';
-  const btnDanger = 'px-3 py-1.5 border border-red-200 text-red-600 text-xs font-medium hover:bg-red-50';
+  const inputClass = 'w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100';
+  const btnPrimary = 'px-4 py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 text-sm font-medium hover:bg-zinc-800 dark:hover:bg-zinc-200 disabled:opacity-50';
+  const btnDanger = 'px-3 py-1.5 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-xs font-medium hover:bg-red-50 dark:hover:bg-red-950';
 
   return (
     <div className="max-w-2xl mx-auto space-y-10">
-      <h1 className="text-xl font-bold text-zinc-900">Settings</h1>
+      <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">Settings</h1>
 
       {/* Profile */}
       <section className="space-y-4">
-        <h2 className="text-sm font-semibold text-zinc-900 uppercase tracking-wide">Profile</h2>
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 uppercase tracking-wide">Profile</h2>
         <div className="space-y-3">
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">Username</label>
+            <label className="block text-xs text-zinc-500 dark:text-zinc-400 mb-1">Username</label>
             <div className="flex items-center gap-2">
-              <input type="text" value={user?.username || ''} disabled className={`${inputClass} bg-zinc-50 text-zinc-500`} />
+              <input type="text" value={user?.username || ''} disabled className={`${inputClass} bg-zinc-50 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400`} />
               {user?.isAgent && (
-                <span className="text-xs bg-zinc-100 px-1.5 py-0.5 text-zinc-500 border border-zinc-200 whitespace-nowrap">agent</span>
+                <span className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 whitespace-nowrap">agent</span>
               )}
             </div>
           </div>
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">Display Name</label>
+            <label className="block text-xs text-zinc-500 dark:text-zinc-400 mb-1">Display Name</label>
             <input
               type="text"
               value={displayName}
@@ -179,16 +179,16 @@ export function Settings() {
               placeholder="Display name"
             />
           </div>
-          {profileMsg && <p className="text-sm text-zinc-600">{profileMsg}</p>}
+          {profileMsg && <p className="text-sm text-zinc-600 dark:text-zinc-400">{profileMsg}</p>}
           <button onClick={handleProfileSave} className={btnPrimary}>Save</button>
         </div>
       </section>
 
-      <hr className="border-zinc-200" />
+      <hr className="border-zinc-200 dark:border-zinc-700" />
 
       {/* Password */}
       <section className="space-y-4">
-        <h2 className="text-sm font-semibold text-zinc-900 uppercase tracking-wide">Password</h2>
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 uppercase tracking-wide">Password</h2>
         <div className="space-y-3">
           <input
             type="password"
@@ -211,23 +211,23 @@ export function Settings() {
             className={inputClass}
             placeholder="Confirm new password"
           />
-          {passwordMsg && <p className="text-sm text-zinc-600">{passwordMsg}</p>}
+          {passwordMsg && <p className="text-sm text-zinc-600 dark:text-zinc-400">{passwordMsg}</p>}
           <button onClick={handlePasswordChange} className={btnPrimary}>Change Password</button>
         </div>
       </section>
 
-      <hr className="border-zinc-200" />
+      <hr className="border-zinc-200 dark:border-zinc-700" />
 
       {/* Passkeys */}
       <section className="space-y-4">
-        <h2 className="text-sm font-semibold text-zinc-900 uppercase tracking-wide">Passkeys</h2>
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 uppercase tracking-wide">Passkeys</h2>
         {passkeyList.length > 0 ? (
-          <div className="border border-zinc-200 divide-y divide-zinc-200">
+          <div className="border border-zinc-200 dark:border-zinc-700 divide-y divide-zinc-200 dark:divide-zinc-700">
             {passkeyList.map((pk) => (
               <div key={pk.id} className="flex items-center justify-between px-3 py-2.5">
                 <div>
-                  <div className="text-sm text-zinc-900">{pk.name || 'Unnamed passkey'}</div>
-                  <div className="text-xs text-zinc-400">
+                  <div className="text-sm text-zinc-900 dark:text-zinc-100">{pk.name || 'Unnamed passkey'}</div>
+                  <div className="text-xs text-zinc-400 dark:text-zinc-500">
                     {pk.deviceType || 'unknown'}{pk.backedUp ? ' (backed up)' : ''} &middot; Added {formatDate(pk.createdAt)}
                     {pk.lastUsedAt && <> &middot; Last used {formatDate(pk.lastUsedAt)}</>}
                   </div>
@@ -237,7 +237,7 @@ export function Settings() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-zinc-400">No passkeys registered yet.</p>
+          <p className="text-sm text-zinc-400 dark:text-zinc-500">No passkeys registered yet.</p>
         )}
         <div className="flex gap-2">
           <input
@@ -249,24 +249,24 @@ export function Settings() {
           />
           <button onClick={handleRegisterPasskey} className={btnPrimary}>Add Passkey</button>
         </div>
-        {passkeyMsg && <p className="text-sm text-zinc-600">{passkeyMsg}</p>}
+        {passkeyMsg && <p className="text-sm text-zinc-600 dark:text-zinc-400">{passkeyMsg}</p>}
       </section>
 
-      <hr className="border-zinc-200" />
+      <hr className="border-zinc-200 dark:border-zinc-700" />
 
       {/* API Keys */}
       <section className="space-y-4">
-        <h2 className="text-sm font-semibold text-zinc-900 uppercase tracking-wide">API Keys</h2>
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 uppercase tracking-wide">API Keys</h2>
         {apiKeyList.length > 0 ? (
-          <div className="border border-zinc-200 divide-y divide-zinc-200">
+          <div className="border border-zinc-200 dark:border-zinc-700 divide-y divide-zinc-200 dark:divide-zinc-700">
             {apiKeyList.map((k) => (
               <div key={k.id} className="flex items-center justify-between px-3 py-2.5">
                 <div>
-                  <div className="text-sm text-zinc-900">
-                    <span className="font-mono text-xs bg-zinc-100 px-1 py-0.5 border border-zinc-200">{k.keyPrefix}...</span>
-                    {k.label && <span className="ml-2 text-zinc-600">{k.label}</span>}
+                  <div className="text-sm text-zinc-900 dark:text-zinc-100">
+                    <span className="font-mono text-xs bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 border border-zinc-200 dark:border-zinc-700">{k.keyPrefix}...</span>
+                    {k.label && <span className="ml-2 text-zinc-600 dark:text-zinc-400">{k.label}</span>}
                   </div>
-                  <div className="text-xs text-zinc-400">
+                  <div className="text-xs text-zinc-400 dark:text-zinc-500">
                     Created {formatDate(k.createdAt)}
                     {k.lastUsedAt && <> &middot; Last used {formatDate(k.lastUsedAt)}</>}
                   </div>
@@ -276,12 +276,12 @@ export function Settings() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-zinc-400">No API keys created yet.</p>
+          <p className="text-sm text-zinc-400 dark:text-zinc-500">No API keys created yet.</p>
         )}
         {newApiKey && (
-          <div className="p-3 bg-zinc-50 border border-zinc-200">
-            <p className="text-xs text-zinc-500 mb-1">Copy this key now. It won't be shown again.</p>
-            <code className="text-sm font-mono text-zinc-900 break-all select-all">{newApiKey}</code>
+          <div className="p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Copy this key now. It won't be shown again.</p>
+            <code className="text-sm font-mono text-zinc-900 dark:text-zinc-100 break-all select-all">{newApiKey}</code>
           </div>
         )}
         <div className="flex gap-2">
@@ -294,7 +294,7 @@ export function Settings() {
           />
           <button onClick={handleCreateApiKey} className={btnPrimary}>Create Key</button>
         </div>
-        {apiKeyMsg && <p className="text-sm text-zinc-600">{apiKeyMsg}</p>}
+        {apiKeyMsg && <p className="text-sm text-zinc-600 dark:text-zinc-400">{apiKeyMsg}</p>}
       </section>
     </div>
   );

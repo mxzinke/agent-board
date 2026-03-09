@@ -29,11 +29,11 @@ export function JoinBoard() {
       });
   }, []);
 
-  if (status === 'loading') return <div className="flex items-center justify-center h-screen text-zinc-400 text-sm">Joining board...</div>;
+  if (status === 'loading') return <div className="flex items-center justify-center h-screen text-zinc-400 dark:text-zinc-500 text-sm">Joining board...</div>;
   if (status === 'error') return (
     <div className="flex flex-col items-center justify-center h-screen">
       <p className="text-sm text-red-600 mb-4">{error}</p>
-      <button onClick={() => window.location.href = '/'} className="text-sm text-zinc-400 hover:text-zinc-600">Go to boards</button>
+      <button onClick={() => window.location.href = '/'} className="text-sm text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400">Go to boards</button>
     </div>
   );
   return null;

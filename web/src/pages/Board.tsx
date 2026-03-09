@@ -45,21 +45,21 @@ export function Board() {
     setSelectedGoal(goal);
   };
 
-  if (loading) return <div className="text-zinc-400 text-sm">Loading...</div>;
+  if (loading) return <div className="text-zinc-400 dark:text-zinc-500 text-sm">Loading...</div>;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-lg font-bold text-zinc-900">{currentBoard?.name}</h2>
+          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">{currentBoard?.name}</h2>
           {currentBoard?.description && (
-            <p className="text-sm text-zinc-400">{currentBoard.description}</p>
+            <p className="text-sm text-zinc-400 dark:text-zinc-500">{currentBoard.description}</p>
           )}
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setShowInvite(true)}
-            className="px-3 py-1.5 text-sm border border-zinc-200 text-zinc-600 hover:border-zinc-400"
+            className="px-3 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-500"
           >
             Share
           </button>
@@ -67,11 +67,11 @@ export function Board() {
       </div>
 
       {/* Members bar */}
-      <div className="flex gap-2 mb-4 text-xs text-zinc-400 flex-wrap">
+      <div className="flex gap-2 mb-4 text-xs text-zinc-400 dark:text-zinc-500 flex-wrap">
         {currentBoard?.members?.map((m: any) => (
-          <span key={m.userId} className="border border-zinc-100 px-2 py-0.5 bg-zinc-50">
+          <span key={m.userId} className="border border-zinc-100 dark:border-zinc-800 px-2 py-0.5 bg-zinc-50 dark:bg-zinc-900">
             {m.displayName || m.username}
-            {m.isAgent && <span className="ml-1 text-zinc-300">●</span>}
+            {m.isAgent && <span className="ml-1 text-zinc-300 dark:text-zinc-600">●</span>}
           </span>
         ))}
       </div>
