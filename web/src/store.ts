@@ -8,8 +8,6 @@ interface User {
   isAgent: boolean;
 }
 
-type View = 'boards' | 'settings';
-
 interface AppState {
   user: User | null;
   token: string | null;
@@ -18,7 +16,6 @@ interface AppState {
   goals: any[];
   selectedGoal: any | null;
   loading: boolean;
-  view: View;
 
   setAuth: (user: User, token: string) => void;
   logout: () => void;
@@ -28,10 +25,12 @@ interface AppState {
   setCurrentBoard: (board: any) => void;
   fetchGoals: (boardId: string) => Promise<void>;
   setSelectedGoal: (goal: any | null) => void;
-  setView: (view: View) => void;
+
+  // Load data from URL on initial page load
+  loadFromPath: (path: string) => Promise<void>;
 }
 
-export const useStore = create<AppState>((set, _get) => ({
+export const useStore = create<AppState>((set, get) => ({
   user: null,
   token: localStorage.getItem('agent-board-token'),
   boards: [],
@@ -39,7 +38,6 @@ export const useStore = create<AppState>((set, _get) => ({
   goals: [],
   selectedGoal: null,
   loading: false,
-  view: 'boards' as View,
 
   setAuth: (user, token) => {
     localStorage.setItem('agent-board-token', token);
@@ -48,7 +46,7 @@ export const useStore = create<AppState>((set, _get) => ({
 
   logout: () => {
     localStorage.removeItem('agent-board-token');
-    set({ user: null, token: null, boards: [], currentBoard: null, goals: [], selectedGoal: null, view: 'boards' as View });
+    set({ user: null, token: null, boards: [], currentBoard: null, goals: [], selectedGoal: null });
   },
 
   checkAuth: async () => {
@@ -76,5 +74,33 @@ export const useStore = create<AppState>((set, _get) => ({
   },
 
   setSelectedGoal: (goal) => set({ selectedGoal: goal }),
-  setView: (view) => set({ view, selectedGoal: null, currentBoard: null }),
+
+  loadFromPath: async (path) => {
+    // Parse URL and load appropriate data
+    const boardMatch = path.match(/^\/b\/([^/]+)$/);
+    const goalMatch = path.match(/^\/b\/([^/]+)\/([^/]+)$/);
+
+    if (goalMatch) {
+      const [, boardId, goalId] = goalMatch;
+      try {
+        const board = await api.getBoard(boardId);
+        set({ currentBoard: board });
+        await get().fetchGoals(boardId);
+        const goal = await api.getGoal(boardId, goalId);
+        set({ selectedGoal: goal });
+      } catch {
+        // If data can't be loaded, fall back to board list
+        window.history.replaceState({}, '', '/');
+      }
+    } else if (boardMatch) {
+      const [, boardId] = boardMatch;
+      try {
+        const board = await api.getBoard(boardId);
+        set({ currentBoard: board });
+        await get().fetchGoals(boardId);
+      } catch {
+        window.history.replaceState({}, '', '/');
+      }
+    }
+  },
 }));

@@ -3,6 +3,7 @@ import { useStore } from '../store';
 import { api } from '../api';
 import { KanbanColumn } from '../components/KanbanColumn';
 import { InviteModal } from '../components/InviteModal';
+import { Crown } from 'lucide-react';
 
 const STATUSES = [
   { key: 'backlog', label: 'Backlog' },
@@ -12,7 +13,11 @@ const STATUSES = [
   { key: 'done', label: 'Done' },
 ];
 
-export function Board() {
+interface BoardProps {
+  navigate: (to: string) => void;
+}
+
+export function Board({ navigate }: BoardProps) {
   const { currentBoard, setCurrentBoard, goals, fetchGoals, setSelectedGoal, user, fetchBoards } = useStore();
   const [loading, setLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
@@ -77,6 +82,7 @@ export function Board() {
       await api.deleteBoard(currentBoard.id);
       setCurrentBoard(null);
       await fetchBoards();
+      navigate('/');
     } catch (e: any) {
       alert(e.message);
     }
@@ -106,6 +112,7 @@ export function Board() {
     if (!currentBoard) return;
     const goal = await api.getGoal(currentBoard.id, goalId);
     setSelectedGoal(goal);
+    navigate('/b/' + currentBoard.id + '/' + goalId);
   };
 
   if (loading) return <div className="text-zinc-400 dark:text-zinc-500 text-sm">Loading...</div>;
@@ -217,7 +224,7 @@ export function Board() {
             <span className="text-xs text-zinc-600 dark:text-zinc-400">
               {m.displayName || m.username}
             </span>
-            {m.isAgent && <span className="text-zinc-300 dark:text-zinc-600 text-xs">●</span>}
+            {m.isAgent && <span className="text-zinc-300 dark:text-zinc-600 text-xs">{'\u25cf'}</span>}
             {isOwner && (
               <button
                 onClick={(e) => { e.stopPropagation(); handleToggleRole(m); }}
@@ -225,8 +232,8 @@ export function Board() {
                 title={`Role: ${m.role}`}
               >
                 {m.role === 'owner' ? (
-                  <svg className="w-3 h-3 inline" viewBox="0 0 16 16" fill="currentColor"><path d="M2 12h12l-1.5-6L9 8 8 4 7 8 3.5 6z"/><rect x="2" y="12.5" width="12" height="1.5"/></svg>
-                ) : '·'}
+                  <Crown className="w-3 h-3 inline" />
+                ) : '\u00b7'}
               </button>
             )}
             {isOwner && m.userId !== user?.id && (

@@ -38,6 +38,8 @@ app.onError((err, c) => {
 app.use('/assets/*', serveStatic({ root: './web/dist' }));
 app.get('/favicon.ico', serveStatic({ path: './web/dist/favicon.ico' }));
 app.get('/logo.svg', serveStatic({ path: './web/dist/logo.svg' }));
+app.get('/manifest.json', serveStatic({ path: './web/dist/manifest.json' }));
+app.get('/sw.js', serveStatic({ path: './web/dist/sw.js' }));
 
 // SPA fallback — serve index.html for all non-API routes
 app.get('*', serveStatic({ path: './web/dist/index.html' }));

@@ -11,7 +11,11 @@ const STATUS_LABELS: Record<string, string> = {
   done: 'Done',
 };
 
-export function GoalDetail() {
+interface GoalDetailProps {
+  navigate: (to: string) => void;
+}
+
+export function GoalDetail({ navigate }: GoalDetailProps) {
   const { selectedGoal, setSelectedGoal, currentBoard, fetchGoals } = useStore();
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(selectedGoal?.title || '');
@@ -68,6 +72,12 @@ export function GoalDetail() {
     await api.deleteGoal(currentBoard.id, selectedGoal.id);
     setSelectedGoal(null);
     await fetchGoals(currentBoard.id);
+    navigate('/b/' + currentBoard.id);
+  };
+
+  const handleBack = () => {
+    setSelectedGoal(null);
+    navigate('/b/' + currentBoard.id);
   };
 
   const subtasksDone = selectedGoal.subtasks?.filter((s: any) => s.done).length || 0;
@@ -75,6 +85,14 @@ export function GoalDetail() {
 
   return (
     <div className="max-w-2xl">
+      {/* Back link */}
+      <button
+        onClick={handleBack}
+        className="text-xs text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400 mb-4 inline-block"
+      >
+        &larr; Back to board
+      </button>
+
       {/* Header */}
       <div className="mb-6">
         {editing ? (
@@ -114,7 +132,7 @@ export function GoalDetail() {
       </div>
 
       {/* Status */}
-      <div className="flex gap-1 mb-6">
+      <div className="flex gap-1 mb-6 flex-wrap">
         {STATUSES.map((s) => (
           <button
             key={s}

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Plus } from 'lucide-react';
 
 interface KanbanColumnProps {
   status: string;
@@ -89,10 +90,10 @@ export function KanbanColumn({
         </div>
         <button
           onClick={onShowNewGoal}
-          className="text-zinc-300 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 text-lg leading-none"
+          className="text-zinc-300 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 leading-none"
           title="Add goal"
         >
-          +
+          <Plus className="w-4 h-4" />
         </button>
       </div>
 
@@ -115,7 +116,7 @@ export function KanbanColumn({
               <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 line-clamp-2">{goal.description}</p>
             )}
             {/* Move buttons */}
-            <div className="flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex gap-1 mt-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
               {PREV_STATUS[status] && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onMoveGoal(goal.id, PREV_STATUS[status]); }}

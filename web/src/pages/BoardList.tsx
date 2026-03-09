@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react';
 import { useStore } from '../store';
 import { api } from '../api';
 
-export function BoardList() {
+interface BoardListProps {
+  navigate: (to: string) => void;
+}
+
+export function BoardList({ navigate }: BoardListProps) {
   const { boards, fetchBoards, setCurrentBoard } = useStore();
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState('');
@@ -22,6 +26,7 @@ export function BoardList() {
     setShowCreate(false);
     await fetchBoards();
     setCurrentBoard(board);
+    navigate('/b/' + board.id);
   };
 
   if (loading) return <div className="text-zinc-400 dark:text-zinc-500 text-sm">Loading boards...</div>;
@@ -72,6 +77,7 @@ export function BoardList() {
               onClick={async () => {
                 const full = await api.getBoard(board.id);
                 setCurrentBoard(full);
+                navigate('/b/' + board.id);
               }}
               className="border border-zinc-200 dark:border-zinc-700 p-4 text-left hover:border-zinc-400 dark:hover:border-zinc-500 transition-colors"
             >
