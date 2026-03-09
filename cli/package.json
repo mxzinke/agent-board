@@ -1,0 +1,23 @@
+{
+  "name": "agent-board",
+  "version": "0.1.0",
+  "description": "CLI for agent-board — project management for human + AI agent collaboration",
+  "type": "module",
+  "bin": {
+    "agent-board": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "bun build src/index.ts --outdir dist --target node",
+    "dev": "bun run src/index.ts"
+  },
+  "files": ["dist"],
+  "dependencies": {
+    "commander": "^13"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5"
+  },
+  "keywords": ["agent", "board", "kanban", "ai", "project-management", "cli"],
+  "license": "MIT"
+}

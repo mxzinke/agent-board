@@ -1,0 +1,129 @@
+import { Hono } from 'hono';
+import { zValidator } from '@hono/zod-validator';
+import { z } from 'zod';
+import { db } from '../../db';
+import { comments, goals, boardMembers, users } from '../../db/schema';
+import { eq, and, asc } from 'drizzle-orm';
+import { authMiddleware } from '../middleware/auth';
+import { notFound, forbidden } from '../lib/errors';
+
+const commentsRouter = new Hono();
+commentsRouter.use('*', authMiddleware);
+
+async function requireGoalAccess(goalId: string, userId: string) {
+  const [goal] = await db.select().from(goals).where(eq(goals.id, goalId)).limit(1);
+  if (!goal) throw notFound('Goal not found');
+
+  const [membership] = await db.select().from(boardMembers)
+    .where(and(eq(boardMembers.boardId, goal.boardId), eq(boardMembers.userId, userId))).limit(1);
+  if (!membership) throw forbidden('Not a board member');
+
+  return goal;
+}
+
+// List comments
+commentsRouter.get('/goals/:goalId/comments', async (c) => {
+  const { sub } = c.get('user');
+  const goalId = c.req.param('goalId');
+
+  await requireGoalAccess(goalId, sub);
+
+  const items = await db
+    .select({
+      id: comments.id,
+      goalId: comments.goalId,
+      authorId: comments.authorId,
+      body: comments.body,
+      createdAt: comments.createdAt,
+      updatedAt: comments.updatedAt,
+      authorUsername: users.username,
+      authorDisplayName: users.displayName,
+      authorIsAgent: users.isAgent,
+    })
+    .from(comments)
+    .innerJoin(users, eq(users.id, comments.authorId))
+    .where(eq(comments.goalId, goalId))
+    .orderBy(asc(comments.createdAt));
+
+  return c.json(items);
+});
+
+// Create comment
+commentsRouter.post('/goals/:goalId/comments',
+  zValidator('json', z.object({
+    body: z.string().min(1).max(10000),
+  })),
+  async (c) => {
+    const { sub } = c.get('user');
+    const goalId = c.req.param('goalId');
+    const { body } = c.req.valid('json');
+
+    await requireGoalAccess(goalId, sub);
+
+    const [comment] = await db.insert(comments).values({
+      goalId,
+      authorId: sub,
+      body,
+    }).returning();
+
+    // Return with author info
+    const [user] = await db.select({
+      username: users.username,
+      displayName: users.displayName,
+      isAgent: users.isAgent
+    }).from(users).where(eq(users.id, sub)).limit(1);
+
+    return c.json({
+      ...comment,
+      authorUsername: user?.username,
+      authorDisplayName: user?.displayName,
+      authorIsAgent: user?.isAgent,
+    }, 201);
+  }
+);
+
+// Update comment
+commentsRouter.patch('/goals/:goalId/comments/:id',
+  zValidator('json', z.object({
+    body: z.string().min(1).max(10000),
+  })),
+  async (c) => {
+    const { sub } = c.get('user');
+    const goalId = c.req.param('goalId');
+    const id = c.req.param('id');
+    const { body } = c.req.valid('json');
+
+    await requireGoalAccess(goalId, sub);
+
+    const [existing] = await db.select().from(comments)
+      .where(and(eq(comments.id, id), eq(comments.goalId, goalId))).limit(1);
+    if (!existing) throw notFound('Comment not found');
+    if (existing.authorId !== sub) throw forbidden('Can only edit your own comments');
+
+    const [comment] = await db.update(comments)
+      .set({ body, updatedAt: new Date() })
+      .where(eq(comments.id, id))
+      .returning();
+
+    return c.json(comment);
+  }
+);
+
+// Delete comment
+commentsRouter.delete('/goals/:goalId/comments/:id', async (c) => {
+  const { sub } = c.get('user');
+  const goalId = c.req.param('goalId');
+  const id = c.req.param('id');
+
+  await requireGoalAccess(goalId, sub);
+
+  const [existing] = await db.select().from(comments)
+    .where(and(eq(comments.id, id), eq(comments.goalId, goalId))).limit(1);
+  if (!existing) throw notFound('Comment not found');
+  if (existing.authorId !== sub) throw forbidden('Can only delete your own comments');
+
+  await db.delete(comments).where(eq(comments.id, id));
+  return c.json({ ok: true });
+});
+
+export default commentsRouter;
