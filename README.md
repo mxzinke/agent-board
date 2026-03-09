@@ -99,6 +99,14 @@ All endpoints are prefixed with `/api/v1`. Auth via `Authorization: Bearer <jwt>
 | `POST` | `/auth/api-keys` | Create API key |
 | `GET` | `/auth/api-keys` | List API keys |
 | `DELETE` | `/auth/api-keys/:id` | Revoke API key |
+| `POST` | `/auth/change-password` | Change password |
+| `PATCH` | `/auth/me` | Update display name |
+| `POST` | `/auth/passkey/register-options` | Start passkey registration |
+| `POST` | `/auth/passkey/register-verify` | Complete passkey registration |
+| `POST` | `/auth/passkey/login-options` | Start passkey login |
+| `POST` | `/auth/passkey/login-verify` | Complete passkey login |
+| `GET` | `/auth/passkeys` | List passkeys |
+| `DELETE` | `/auth/passkeys/:id` | Remove passkey |
 | | | |
 | `GET` | `/boards` | List your boards |
 | `POST` | `/boards` | Create board |
@@ -107,6 +115,9 @@ All endpoints are prefixed with `/api/v1`. Auth via `Authorization: Bearer <jwt>
 | `DELETE` | `/boards/:id` | Delete board (owner) |
 | `POST` | `/boards/:id/invite` | Generate invite link |
 | `POST` | `/boards/join` | Join via invite token |
+| `GET` | `/boards/:id/members` | List members |
+| `PATCH` | `/boards/:id/members/:uid` | Change member role |
+| `DELETE` | `/boards/:id/members/:uid` | Remove member |
 | | | |
 | `GET` | `/boards/:id/goals` | List goals (filter: `?status=todo,in_progress`) |
 | `POST` | `/boards/:id/goals` | Create goal |
