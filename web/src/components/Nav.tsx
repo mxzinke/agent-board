@@ -53,10 +53,16 @@ export function Nav() {
           </span>
           <button
             onClick={cycleTheme}
-            className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 text-xs"
+            className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
             title={`Theme: ${theme}`}
           >
-            {theme === 'light' ? '\u2600' : theme === 'dark' ? '\uD83C\uDF19' : '\u25D0'}
+            {theme === 'light' ? (
+              <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/></svg>
+            ) : theme === 'dark' ? (
+              <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M13.5 8.5a5.5 5.5 0 01-7-7 5.5 5.5 0 107 7z"/></svg>
+            ) : (
+              <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11" fill="currentColor"/><path d="M8 2.5a5.5 5.5 0 010 11" fill="currentColor"/></svg>
+            )}
           </button>
           <button
             onClick={() => setView('settings')}

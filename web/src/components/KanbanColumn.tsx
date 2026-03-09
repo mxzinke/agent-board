@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 interface KanbanColumnProps {
   status: string;
   label: string;
@@ -47,6 +49,36 @@ export function KanbanColumn({
   onCreateGoal,
   onCancelNewGoal,
 }: KanbanColumnProps) {
+  const [dragOver, setDragOver] = useState(false);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only reset if leaving the column itself, not a child
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const goalId = e.dataTransfer.getData('text/plain');
+    const fromStatus = e.dataTransfer.getData('application/x-status');
+    if (goalId && fromStatus !== status) {
+      onMoveGoal(goalId, status);
+    }
+  };
+
+  const handleDragStart = (e: React.DragEvent, goal: any) => {
+    e.dataTransfer.setData('text/plain', goal.id);
+    e.dataTransfer.setData('application/x-status', status);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
   return (
     <div className="flex-shrink-0 w-64">
       <div className="flex items-center justify-between mb-2">
@@ -64,11 +96,18 @@ export function KanbanColumn({
         </button>
       </div>
 
-      <div className="space-y-2 min-h-[200px]">
+      <div
+        className={`space-y-2 min-h-[200px] transition-colors ${dragOver ? 'bg-zinc-50 dark:bg-zinc-900/50' : ''}`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         {goals.map((goal) => (
           <div
             key={goal.id}
-            className="border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 p-3 cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-500 group"
+            draggable
+            onDragStart={(e) => handleDragStart(e, goal)}
+            className="border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 p-3 cursor-grab active:cursor-grabbing hover:border-zinc-400 dark:hover:border-zinc-500 group"
             onClick={() => onOpenGoal(goal.id)}
           >
             <p className="text-sm text-zinc-900 dark:text-zinc-100 font-medium leading-snug">{goal.title}</p>
