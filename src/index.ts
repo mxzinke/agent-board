@@ -4,6 +4,10 @@ import { logger } from 'hono/logger';
 import { HTTPException } from 'hono/http-exception';
 import { serveStatic } from 'hono/bun';
 import api from './api';
+import { runMigrations } from './db/migrate';
+
+// Run migrations on startup
+await runMigrations();
 
 const app = new Hono();
 
