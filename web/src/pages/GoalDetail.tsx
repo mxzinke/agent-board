@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useStore } from '../store';
 import { api } from '../api';
 
@@ -22,6 +22,10 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
   const [description, setDescription] = useState(selectedGoal?.description || '');
   const [newSubtask, setNewSubtask] = useState('');
   const [newComment, setNewComment] = useState('');
+  const [attachmentsList, setAttachmentsList] = useState<any[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!selectedGoal || !currentBoard) return null;
 
@@ -67,6 +71,50 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
     await refresh();
   };
 
+  const loadAttachments = useCallback(async () => {
+    if (!selectedGoal) return;
+    try {
+      const files = await api.listAttachments(selectedGoal.id);
+      setAttachmentsList(files);
+    } catch { /* ignore */ }
+  }, [selectedGoal?.id]);
+
+  useEffect(() => { loadAttachments(); }, [loadAttachments]);
+
+  const handleUploadFiles = async (files: FileList | File[]) => {
+    if (!selectedGoal) return;
+    setUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        await api.uploadAttachment(selectedGoal.id, file);
+      }
+      await loadAttachments();
+    } catch (err: any) {
+      alert(err.message || 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    if (e.dataTransfer.files.length > 0) {
+      handleUploadFiles(e.dataTransfer.files);
+    }
+  };
+
+  const handleDeleteAttachment = async (id: string) => {
+    await api.deleteAttachment(id);
+    await loadAttachments();
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
   const handleDelete = async () => {
     if (!confirm('Delete this goal?')) return;
     await api.deleteGoal(currentBoard.id, selectedGoal.id);
@@ -84,7 +132,12 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
   const subtasksTotal = selectedGoal.subtasks?.length || 0;
 
   return (
-    <div className="max-w-2xl">
+    <div
+      className={`max-w-2xl ${dragOver ? 'ring-2 ring-zinc-400 dark:ring-zinc-500 ring-offset-4 dark:ring-offset-zinc-950' : ''}`}
+      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={handleDrop}
+    >
       {/* Back link */}
       <button
         onClick={handleBack}
@@ -200,6 +253,69 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
           />
           <button onClick={handleAddSubtask} className="px-2 py-1 text-xs bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950">Add</button>
         </div>
+      </div>
+
+      {/* Attachments */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
+            Files {attachmentsList.length > 0 && `(${attachmentsList.length})`}
+          </h3>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="text-xs text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400"
+          >
+            {uploading ? 'Uploading...' : '+ Upload'}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => e.target.files && handleUploadFiles(e.target.files)}
+          />
+        </div>
+
+        {attachmentsList.length > 0 ? (
+          <div className="space-y-1">
+            {attachmentsList.map((att: any) => (
+              <div key={att.id} className="flex items-center justify-between py-1.5 px-2 border border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 group">
+                <a
+                  href={api.downloadAttachment(att.id)}
+                  target="_blank"
+                  rel="noopener"
+                  className="flex items-center gap-2 min-w-0 flex-1"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const token = localStorage.getItem('agent-board-token');
+                    fetch(api.downloadAttachment(att.id), {
+                      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                    }).then(r => r.blob()).then(blob => {
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = att.filename;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    });
+                  }}
+                >
+                  <span className="text-sm text-zinc-700 dark:text-zinc-300 truncate">{att.filename}</span>
+                  <span className="text-xs text-zinc-400 dark:text-zinc-500 flex-shrink-0">{formatFileSize(att.size)}</span>
+                </a>
+                <button
+                  onClick={() => handleDeleteAttachment(att.id)}
+                  className="text-xs text-zinc-300 dark:text-zinc-600 hover:text-red-500 opacity-0 group-hover:opacity-100 ml-2"
+                >
+                  {'\u2715'}
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-zinc-300 dark:text-zinc-600">Drop files here or click Upload</p>
+        )}
       </div>
 
       {/* Comments */}

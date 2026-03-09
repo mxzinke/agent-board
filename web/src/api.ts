@@ -99,4 +99,26 @@ export const api = {
     request<any>(`/goals/${goalId}/comments`, { method: 'POST', body: JSON.stringify({ body }) }),
   deleteComment: (goalId: string, commentId: string) =>
     request<{ ok: boolean }>(`/goals/${goalId}/comments/${commentId}`, { method: 'DELETE' }),
+
+  // Attachments
+  listAttachments: (goalId: string) =>
+    request<any[]>(`/goals/${goalId}/attachments`),
+  uploadAttachment: async (goalId: string, file: File) => {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`${BASE}/goals/${goalId}/attachments`, {
+      method: 'POST',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: formData,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(body.error || res.statusText);
+    }
+    return res.json();
+  },
+  downloadAttachment: (id: string) => `${BASE}/attachments/${id}/download`,
+  deleteAttachment: (id: string) =>
+    request<{ ok: boolean }>(`/attachments/${id}`, { method: 'DELETE' }),
 };
