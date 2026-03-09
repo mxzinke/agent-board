@@ -230,10 +230,10 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
 
         <div className="space-y-1">
           {selectedGoal.subtasks?.map((subtask: any) => (
-            <div key={subtask.id} className="flex items-center gap-2 group py-1">
+            <div key={subtask.id} className="flex items-center gap-3 group py-2">
               <button
                 onClick={() => handleToggleSubtask(subtask.id, !subtask.done)}
-                className={`w-4 h-4 border flex-shrink-0 flex items-center justify-center text-xs ${
+                className={`w-5 h-5 border flex-shrink-0 flex items-center justify-center text-xs ${
                   subtask.done ? 'bg-zinc-900 dark:bg-zinc-100 border-zinc-900 dark:border-zinc-100 text-white dark:text-zinc-950' : 'border-zinc-300 dark:border-zinc-600 hover:border-zinc-500 dark:hover:border-zinc-400'
                 }`}
               >
@@ -250,11 +250,11 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
                   }}
                   onBlur={() => handleEditSubtask(subtask.id)}
                   autoFocus
-                  className="flex-1 px-1 py-0 text-sm border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
+                  className="flex-1 px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 rounded focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
                 />
               ) : (
                 <span
-                  className={`text-sm flex-1 cursor-pointer ${subtask.done ? 'line-through text-zinc-300 dark:text-zinc-600' : 'text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100'}`}
+                  className={`text-sm flex-1 cursor-pointer py-0.5 ${subtask.done ? 'line-through text-zinc-300 dark:text-zinc-600' : 'text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100'}`}
                   onClick={() => { setEditingSubtaskId(subtask.id); setEditingSubtaskTitle(subtask.title); }}
                 >
                   {subtask.title}
@@ -262,7 +262,7 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
               )}
               <button
                 onClick={() => handleDeleteSubtask(subtask.id)}
-                className="text-xs text-zinc-300 dark:text-zinc-600 hover:text-red-500 opacity-0 group-hover:opacity-100"
+                className="text-xs text-zinc-300 dark:text-zinc-600 hover:text-red-500 opacity-0 group-hover:opacity-100 p-1"
               >
                 {'\u2715'}
               </button>
