@@ -22,6 +22,8 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
   const [description, setDescription] = useState(selectedGoal?.description || '');
   const [newSubtask, setNewSubtask] = useState('');
   const [newComment, setNewComment] = useState('');
+  const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
+  const [editingSubtaskTitle, setEditingSubtaskTitle] = useState('');
   const [attachmentsList, setAttachmentsList] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -56,6 +58,14 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
 
   const handleToggleSubtask = async (subtaskId: string, done: boolean) => {
     await api.updateSubtask(selectedGoal.id, subtaskId, { done });
+    await refresh();
+  };
+
+  const handleEditSubtask = async (subtaskId: string) => {
+    if (!editingSubtaskTitle.trim()) return;
+    await api.updateSubtask(selectedGoal.id, subtaskId, { title: editingSubtaskTitle.trim() });
+    setEditingSubtaskId(null);
+    setEditingSubtaskTitle('');
     await refresh();
   };
 
@@ -229,9 +239,27 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
               >
                 {subtask.done && '\u2713'}
               </button>
-              <span className={`text-sm flex-1 ${subtask.done ? 'line-through text-zinc-300 dark:text-zinc-600' : 'text-zinc-700 dark:text-zinc-300'}`}>
-                {subtask.title}
-              </span>
+              {editingSubtaskId === subtask.id ? (
+                <input
+                  type="text"
+                  value={editingSubtaskTitle}
+                  onChange={(e) => setEditingSubtaskTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleEditSubtask(subtask.id);
+                    if (e.key === 'Escape') { setEditingSubtaskId(null); setEditingSubtaskTitle(''); }
+                  }}
+                  onBlur={() => handleEditSubtask(subtask.id)}
+                  autoFocus
+                  className="flex-1 px-1 py-0 text-sm border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
+                />
+              ) : (
+                <span
+                  className={`text-sm flex-1 cursor-pointer ${subtask.done ? 'line-through text-zinc-300 dark:text-zinc-600' : 'text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100'}`}
+                  onClick={() => { setEditingSubtaskId(subtask.id); setEditingSubtaskTitle(subtask.title); }}
+                >
+                  {subtask.title}
+                </span>
+              )}
               <button
                 onClick={() => handleDeleteSubtask(subtask.id)}
                 className="text-xs text-zinc-300 dark:text-zinc-600 hover:text-red-500 opacity-0 group-hover:opacity-100"
