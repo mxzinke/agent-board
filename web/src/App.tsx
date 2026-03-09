@@ -5,10 +5,11 @@ import { BoardList } from './pages/BoardList';
 import { Board } from './pages/Board';
 import { GoalDetail } from './pages/GoalDetail';
 import { JoinBoard } from './pages/JoinBoard';
+import { Settings } from './pages/Settings';
 import { Nav } from './components/Nav';
 
 export function App() {
-  const { user, checkAuth, currentBoard, selectedGoal } = useStore();
+  const { user, checkAuth, currentBoard, selectedGoal, view } = useStore();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -29,7 +30,9 @@ export function App() {
     <div className="min-h-screen bg-white">
       <Nav />
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {selectedGoal ? (
+        {view === 'settings' ? (
+          <Settings />
+        ) : selectedGoal ? (
           <GoalDetail />
         ) : currentBoard ? (
           <Board />

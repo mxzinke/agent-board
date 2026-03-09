@@ -2,15 +2,40 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db } from '../../db';
-import { users, apiKeys } from '../../db/schema';
-import { eq } from 'drizzle-orm';
+import { users, apiKeys, passkeys } from '../../db/schema';
+import { eq, and } from 'drizzle-orm';
 import { hashPassword, verifyPassword } from '../lib/password';
 import { signToken } from '../lib/jwt';
 import { authMiddleware } from '../middleware/auth';
 import { badRequest, unauthorized } from '../lib/errors';
 import { nanoid } from 'nanoid';
+import {
+  generateRegistrationOptions,
+  verifyRegistrationResponse,
+  generateAuthenticationOptions,
+  verifyAuthenticationResponse,
+} from '@simplewebauthn/server';
+import type {
+  AuthenticatorTransportFuture,
+} from '@simplewebauthn/types';
+
+const rpName = 'agent-board';
+const rpID = process.env.RP_ID || 'board.unclutter.pro';
+const origin = process.env.RP_ORIGIN || 'https://board.unclutter.pro';
+
+// In-memory challenge store with 5-min TTL
+const challengeStore = new Map<string, { challenge: string; ts: number }>();
+
+function cleanupChallenges() {
+  const now = Date.now();
+  for (const [key, val] of challengeStore) {
+    if (now - val.ts > 5 * 60 * 1000) challengeStore.delete(key);
+  }
+}
 
 const auth = new Hono();
+
+// ─── Public routes (no auth) ───
 
 auth.post('/register',
   zValidator('json', z.object({
@@ -60,6 +85,94 @@ auth.post('/login',
   }
 );
 
+// ─── Passkey login (public, no auth) ───
+
+auth.post('/passkey/login-options',
+  zValidator('json', z.object({
+    username: z.string().optional(),
+  }).optional()),
+  async (c) => {
+    cleanupChallenges();
+
+    const body = c.req.valid('json') || {};
+    let allowCredentials: { id: string; transports?: AuthenticatorTransportFuture[] }[] = [];
+
+    if (body.username) {
+      const [user] = await db.select().from(users).where(eq(users.username, body.username)).limit(1);
+      if (user) {
+        const userPasskeys = await db.select().from(passkeys).where(eq(passkeys.userId, user.id));
+        allowCredentials = userPasskeys.map((pk) => ({
+          id: pk.credentialId,
+          transports: pk.transports ? (JSON.parse(pk.transports) as AuthenticatorTransportFuture[]) : undefined,
+        }));
+      }
+    }
+
+    const options = await generateAuthenticationOptions({
+      rpID,
+      allowCredentials,
+      userVerification: 'preferred',
+    });
+
+    const storeKey = body.username || `anon_${nanoid(16)}`;
+    challengeStore.set(storeKey, { challenge: options.challenge, ts: Date.now() });
+
+    return c.json({ options, storeKey });
+  }
+);
+
+auth.post('/passkey/login-verify',
+  zValidator('json', z.object({
+    storeKey: z.string(),
+    credential: z.any(),
+  })),
+  async (c) => {
+    const { storeKey, credential } = c.req.valid('json');
+
+    const stored = challengeStore.get(storeKey);
+    if (!stored) throw badRequest('Challenge expired or not found');
+    challengeStore.delete(storeKey);
+
+    // Find the passkey by credential ID
+    const credentialId = credential.id;
+    const [pk] = await db.select().from(passkeys).where(eq(passkeys.credentialId, credentialId)).limit(1);
+    if (!pk) throw unauthorized('Passkey not registered');
+
+    const verification = await verifyAuthenticationResponse({
+      response: credential,
+      expectedChallenge: stored.challenge,
+      expectedOrigin: origin,
+      expectedRPID: rpID,
+      credential: {
+        id: pk.credentialId,
+        publicKey: Buffer.from(pk.publicKey, 'base64url'),
+        counter: pk.counter,
+        transports: pk.transports ? (JSON.parse(pk.transports) as AuthenticatorTransportFuture[]) : undefined,
+      },
+    });
+
+    if (!verification.verified) throw unauthorized('Passkey verification failed');
+
+    // Update counter and lastUsedAt
+    await db.update(passkeys).set({
+      counter: verification.authenticationInfo.newCounter,
+      lastUsedAt: new Date(),
+    }).where(eq(passkeys.id, pk.id));
+
+    // Get user and issue JWT
+    const [user] = await db.select().from(users).where(eq(users.id, pk.userId)).limit(1);
+    if (!user) throw unauthorized('User not found');
+
+    const token = await signToken({ sub: user.id, username: user.username });
+    return c.json({
+      user: { id: user.id, username: user.username, displayName: user.displayName, isAgent: user.isAgent },
+      token,
+    });
+  }
+);
+
+// ─── Protected routes ───
+
 auth.get('/me', authMiddleware, async (c) => {
   const { sub } = c.get('user');
   const [user] = await db.select({
@@ -72,6 +185,139 @@ auth.get('/me', authMiddleware, async (c) => {
   if (!user) throw unauthorized('User not found');
   return c.json(user);
 });
+
+auth.patch('/me', authMiddleware,
+  zValidator('json', z.object({
+    displayName: z.string().min(1).max(128),
+  })),
+  async (c) => {
+    const { sub } = c.get('user');
+    const { displayName } = c.req.valid('json');
+    const [user] = await db.update(users)
+      .set({ displayName })
+      .where(eq(users.id, sub))
+      .returning({ id: users.id, username: users.username, displayName: users.displayName, isAgent: users.isAgent });
+    if (!user) throw unauthorized('User not found');
+    return c.json(user);
+  }
+);
+
+auth.post('/change-password', authMiddleware,
+  zValidator('json', z.object({
+    currentPassword: z.string(),
+    newPassword: z.string().min(6).max(256),
+  })),
+  async (c) => {
+    const { sub } = c.get('user');
+    const { currentPassword, newPassword } = c.req.valid('json');
+
+    const [user] = await db.select().from(users).where(eq(users.id, sub)).limit(1);
+    if (!user) throw unauthorized('User not found');
+
+    const valid = await verifyPassword(currentPassword, user.passwordHash);
+    if (!valid) throw badRequest('Current password is incorrect');
+
+    const passwordHash = await hashPassword(newPassword);
+    await db.update(users).set({ passwordHash }).where(eq(users.id, sub));
+
+    return c.json({ ok: true });
+  }
+);
+
+// ─── Passkey registration (protected) ───
+
+auth.post('/passkey/register-options', authMiddleware, async (c) => {
+  cleanupChallenges();
+
+  const { sub, username } = c.get('user');
+
+  const userPasskeys = await db.select().from(passkeys).where(eq(passkeys.userId, sub));
+
+  const options = await generateRegistrationOptions({
+    rpName,
+    rpID,
+    userName: username,
+    attestationType: 'none',
+    excludeCredentials: userPasskeys.map((pk) => ({
+      id: pk.credentialId,
+      transports: pk.transports ? (JSON.parse(pk.transports) as AuthenticatorTransportFuture[]) : undefined,
+    })),
+    authenticatorSelection: {
+      residentKey: 'preferred',
+      userVerification: 'preferred',
+    },
+  });
+
+  challengeStore.set(`reg_${sub}`, { challenge: options.challenge, ts: Date.now() });
+
+  return c.json(options);
+});
+
+auth.post('/passkey/register-verify', authMiddleware,
+  zValidator('json', z.object({
+    credential: z.any(),
+    name: z.string().max(128).optional(),
+  })),
+  async (c) => {
+    const { sub } = c.get('user');
+    const { credential, name } = c.req.valid('json');
+
+    const stored = challengeStore.get(`reg_${sub}`);
+    if (!stored) throw badRequest('Challenge expired or not found');
+    challengeStore.delete(`reg_${sub}`);
+
+    const verification = await verifyRegistrationResponse({
+      response: credential,
+      expectedChallenge: stored.challenge,
+      expectedOrigin: origin,
+      expectedRPID: rpID,
+    });
+
+    if (!verification.verified || !verification.registrationInfo) {
+      throw badRequest('Passkey registration failed');
+    }
+
+    const { credential: cred, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
+
+    const [pk] = await db.insert(passkeys).values({
+      userId: sub,
+      credentialId: cred.id,
+      publicKey: Buffer.from(cred.publicKey).toString('base64url'),
+      counter: cred.counter,
+      deviceType: credentialDeviceType,
+      backedUp: credentialBackedUp,
+      transports: cred.transports ? JSON.stringify(cred.transports) : null,
+      name: name || null,
+    }).returning();
+
+    return c.json({ id: pk.id, name: pk.name, createdAt: pk.createdAt }, 201);
+  }
+);
+
+auth.get('/passkeys', authMiddleware, async (c) => {
+  const { sub } = c.get('user');
+  const pks = await db.select({
+    id: passkeys.id,
+    credentialId: passkeys.credentialId,
+    deviceType: passkeys.deviceType,
+    backedUp: passkeys.backedUp,
+    name: passkeys.name,
+    createdAt: passkeys.createdAt,
+    lastUsedAt: passkeys.lastUsedAt,
+  }).from(passkeys).where(eq(passkeys.userId, sub));
+  return c.json(pks);
+});
+
+auth.delete('/passkeys/:id', authMiddleware, async (c) => {
+  const { sub } = c.get('user');
+  const id = c.req.param('id');
+  const [pk] = await db.select().from(passkeys).where(eq(passkeys.id, id)).limit(1);
+  if (!pk || pk.userId !== sub) throw unauthorized('Not your passkey');
+  await db.delete(passkeys).where(eq(passkeys.id, id));
+  return c.json({ ok: true });
+});
+
+// ─── API Keys (protected) ───
 
 auth.post('/api-keys', authMiddleware,
   zValidator('json', z.object({

@@ -8,6 +8,8 @@ interface User {
   isAgent: boolean;
 }
 
+type View = 'boards' | 'settings';
+
 interface AppState {
   user: User | null;
   token: string | null;
@@ -16,6 +18,7 @@ interface AppState {
   goals: any[];
   selectedGoal: any | null;
   loading: boolean;
+  view: View;
 
   setAuth: (user: User, token: string) => void;
   logout: () => void;
@@ -25,6 +28,7 @@ interface AppState {
   setCurrentBoard: (board: any) => void;
   fetchGoals: (boardId: string) => Promise<void>;
   setSelectedGoal: (goal: any | null) => void;
+  setView: (view: View) => void;
 }
 
 export const useStore = create<AppState>((set, _get) => ({
@@ -35,6 +39,7 @@ export const useStore = create<AppState>((set, _get) => ({
   goals: [],
   selectedGoal: null,
   loading: false,
+  view: 'boards' as View,
 
   setAuth: (user, token) => {
     localStorage.setItem('agent-board-token', token);
@@ -43,7 +48,7 @@ export const useStore = create<AppState>((set, _get) => ({
 
   logout: () => {
     localStorage.removeItem('agent-board-token');
-    set({ user: null, token: null, boards: [], currentBoard: null, goals: [], selectedGoal: null });
+    set({ user: null, token: null, boards: [], currentBoard: null, goals: [], selectedGoal: null, view: 'boards' as View });
   },
 
   checkAuth: async () => {
@@ -71,4 +76,5 @@ export const useStore = create<AppState>((set, _get) => ({
   },
 
   setSelectedGoal: (goal) => set({ selectedGoal: goal }),
+  setView: (view) => set({ view, selectedGoal: null, currentBoard: null }),
 }));
