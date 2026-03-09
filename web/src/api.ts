@@ -26,6 +26,8 @@ export const api = {
     request<{ user: any; token: string }>('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   login: (data: { username: string; password: string }) =>
     request<{ user: any; token: string }>('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+  checkUsername: (username: string) =>
+    request<{ exists: boolean; hasPasskeys: boolean }>('/auth/check-username', { method: 'POST', body: JSON.stringify({ username }) }),
   me: () => request<any>('/auth/me'),
   createApiKey: (label?: string) =>
     request<{ id: string; key: string; keyPrefix: string }>('/auth/api-keys', { method: 'POST', body: JSON.stringify({ label }) }),

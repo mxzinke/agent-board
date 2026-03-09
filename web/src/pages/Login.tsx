@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { startAuthentication } from '@simplewebauthn/browser';
 import { api } from '../api';
 import { useStore } from '../store';
@@ -12,11 +12,49 @@ export function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
+  const [passkeyRequired, setPasskeyRequired] = useState(false);
+  const [checkingUsername, setCheckingUsername] = useState(false);
   const setAuth = useStore((s) => s.setAuth);
+
+  const inputClass = 'w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100';
+
+  const checkUsername = useCallback(async (name: string) => {
+    if (!name.trim() || isRegister) return;
+    setCheckingUsername(true);
+    try {
+      const { hasPasskeys } = await api.checkUsername(name);
+      setPasskeyRequired(hasPasskeys);
+    } catch {
+      setPasskeyRequired(false);
+    } finally {
+      setCheckingUsername(false);
+    }
+  }, [isRegister]);
+
+  const handlePasskeyLogin = async () => {
+    setError('');
+    setPasskeyLoading(true);
+    try {
+      const { options, storeKey } = await api.passkeyLoginOptions(username || undefined);
+      const credential = await startAuthentication({ optionsJSON: options });
+      const result = await api.passkeyLoginVerify({ storeKey, credential });
+      setAuth(result.user, result.token);
+    } catch (err: any) {
+      setError(err.message || 'Passkey authentication failed');
+    } finally {
+      setPasskeyLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // If passkey required and not registering, trigger passkey flow instead
+    if (passkeyRequired && !isRegister) {
+      return handlePasskeyLogin();
+    }
+
     setLoading(true);
     try {
       const result = isRegister
@@ -46,40 +84,50 @@ export function Login() {
             type="text"
             placeholder="Username"
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
+            onChange={(e) => { setUsername(e.target.value); setPasskeyRequired(false); }}
+            onBlur={() => checkUsername(username)}
+            className={inputClass}
             required
           />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
-            required
-          />
-          {isRegister && (
-            <input
-              type="text"
-              placeholder="Display name (optional)"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
-            />
+
+          {passkeyRequired && !isRegister ? (
+            <div className="text-xs text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 px-3 py-2 bg-zinc-50 dark:bg-zinc-900">
+              This account uses passkey authentication.
+            </div>
+          ) : (
+            <>
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={inputClass}
+                required
+              />
+              {isRegister && (
+                <input
+                  type="text"
+                  placeholder="Display name (optional)"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  className={inputClass}
+                />
+              )}
+            </>
           )}
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || passkeyLoading || checkingUsername}
             className="w-full py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 text-sm font-medium hover:bg-zinc-800 dark:hover:bg-zinc-200 disabled:opacity-50"
           >
-            {loading ? '...' : isRegister ? 'Create account' : 'Sign in'}
+            {loading || passkeyLoading ? '...' : passkeyRequired && !isRegister ? 'Sign in with Passkey' : isRegister ? 'Create account' : 'Sign in'}
           </button>
         </form>
 
-        {!isRegister && (
+        {!isRegister && !passkeyRequired && (
           <>
             <div className="flex items-center gap-3 my-4">
               <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
@@ -89,20 +137,7 @@ export function Login() {
             <button
               type="button"
               disabled={passkeyLoading}
-              onClick={async () => {
-                setError('');
-                setPasskeyLoading(true);
-                try {
-                  const { options, storeKey } = await api.passkeyLoginOptions(username || undefined);
-                  const credential = await startAuthentication({ optionsJSON: options });
-                  const result = await api.passkeyLoginVerify({ storeKey, credential });
-                  setAuth(result.user, result.token);
-                } catch (err: any) {
-                  setError(err.message || 'Passkey authentication failed');
-                } finally {
-                  setPasskeyLoading(false);
-                }
-              }}
+              onClick={handlePasskeyLogin}
               className="w-full py-2 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-900 disabled:opacity-50"
             >
               {passkeyLoading ? '...' : 'Sign in with Passkey'}
@@ -111,7 +146,7 @@ export function Login() {
         )}
 
         <button
-          onClick={() => { setIsRegister(!isRegister); setError(''); }}
+          onClick={() => { setIsRegister(!isRegister); setError(''); setPasskeyRequired(false); }}
           className="mt-4 text-sm text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400"
         >
           {isRegister ? 'Already have an account? Sign in' : "Don't have an account? Create one"}

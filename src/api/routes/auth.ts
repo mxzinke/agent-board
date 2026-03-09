@@ -63,6 +63,20 @@ auth.post('/register',
   }
 );
 
+// Check if a username has passkeys (public, for login flow)
+auth.post('/check-username',
+  zValidator('json', z.object({
+    username: z.string(),
+  })),
+  async (c) => {
+    const { username } = c.req.valid('json');
+    const [user] = await db.select({ id: users.id }).from(users).where(eq(users.username, username)).limit(1);
+    if (!user) return c.json({ exists: false, hasPasskeys: false });
+    const userPasskeys = await db.select({ id: passkeys.id }).from(passkeys).where(eq(passkeys.userId, user.id)).limit(1);
+    return c.json({ exists: true, hasPasskeys: userPasskeys.length > 0 });
+  }
+);
+
 auth.post('/login',
   zValidator('json', z.object({
     username: z.string(),
@@ -73,6 +87,10 @@ auth.post('/login',
 
     const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1);
     if (!user) throw unauthorized('Invalid credentials');
+
+    // If user has passkeys, password login is disabled
+    const userPasskeys = await db.select({ id: passkeys.id }).from(passkeys).where(eq(passkeys.userId, user.id)).limit(1);
+    if (userPasskeys.length > 0) throw badRequest('This account uses passkey authentication. Please sign in with your passkey.');
 
     const valid = await verifyPassword(password, user.passwordHash);
     if (!valid) throw unauthorized('Invalid credentials');
