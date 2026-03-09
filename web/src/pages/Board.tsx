@@ -13,11 +13,41 @@ const STATUSES = [
 ];
 
 export function Board() {
-  const { currentBoard, goals, fetchGoals, setSelectedGoal } = useStore();
+  const { currentBoard, setCurrentBoard, goals, fetchGoals, setSelectedGoal, user } = useStore();
   const [loading, setLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
   const [showNewGoal, setShowNewGoal] = useState<string | null>(null);
   const [newGoalTitle, setNewGoalTitle] = useState('');
+
+  const currentMembership = currentBoard?.members?.find((m: any) => m.userId === user?.id);
+  const isOwner = currentMembership?.role === 'owner';
+
+  const refreshBoard = async () => {
+    if (!currentBoard) return;
+    const board = await api.getBoard(currentBoard.id);
+    setCurrentBoard(board);
+  };
+
+  const handleRemoveMember = async (userId: string) => {
+    if (!currentBoard) return;
+    try {
+      await api.removeMember(currentBoard.id, userId);
+      await refreshBoard();
+    } catch (e: any) {
+      alert(e.message);
+    }
+  };
+
+  const handleToggleRole = async (member: any) => {
+    if (!currentBoard) return;
+    const newRole = member.role === 'owner' ? 'member' : 'owner';
+    try {
+      await api.updateMemberRole(currentBoard.id, member.userId, newRole);
+      await refreshBoard();
+    } catch (e: any) {
+      alert(e.message);
+    }
+  };
 
   useEffect(() => {
     if (currentBoard) {
@@ -69,10 +99,38 @@ export function Board() {
       {/* Members bar */}
       <div className="flex gap-2 mb-4 text-xs text-zinc-400 dark:text-zinc-500 flex-wrap">
         {currentBoard?.members?.map((m: any) => (
-          <span key={m.userId} className="border border-zinc-100 dark:border-zinc-800 px-2 py-0.5 bg-zinc-50 dark:bg-zinc-900">
-            {m.displayName || m.username}
-            {m.isAgent && <span className="ml-1 text-zinc-300 dark:text-zinc-600">●</span>}
-          </span>
+          <div key={m.userId} className="flex items-center gap-1 border border-zinc-100 dark:border-zinc-800 px-2 py-0.5 bg-zinc-50 dark:bg-zinc-900 group">
+            <span className="text-xs text-zinc-600 dark:text-zinc-400">
+              {m.displayName || m.username}
+            </span>
+            {m.isAgent && <span className="text-zinc-300 dark:text-zinc-600 text-xs">●</span>}
+            {isOwner && (
+              <button
+                onClick={(e) => { e.stopPropagation(); handleToggleRole(m); }}
+                className="text-xs text-zinc-300 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 ml-1"
+                title={`Role: ${m.role}`}
+              >
+                {m.role === 'owner' ? '\u{1F451}' : '\u00B7'}
+              </button>
+            )}
+            {isOwner && m.userId !== user?.id && (
+              <button
+                onClick={(e) => { e.stopPropagation(); handleRemoveMember(m.userId); }}
+                className="text-xs text-zinc-300 dark:text-zinc-600 hover:text-red-500 opacity-0 group-hover:opacity-100 ml-0.5"
+              >
+                &times;
+              </button>
+            )}
+            {!isOwner && m.userId === user?.id && (
+              <button
+                onClick={(e) => { e.stopPropagation(); handleRemoveMember(m.userId); }}
+                className="text-xs text-zinc-300 dark:text-zinc-600 hover:text-red-500 ml-1"
+                title="Leave board"
+              >
+                Leave
+              </button>
+            )}
+          </div>
         ))}
       </div>
 

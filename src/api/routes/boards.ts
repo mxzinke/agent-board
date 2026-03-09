@@ -146,6 +146,67 @@ boardsRouter.get('/:id/members', async (c) => {
   return c.json(members);
 });
 
+// Change member role (owner only)
+boardsRouter.patch('/:id/members/:userId',
+  zValidator('json', z.object({
+    role: z.enum(['owner', 'member']),
+  })),
+  async (c) => {
+    const { sub } = c.get('user');
+    const boardId = c.req.param('id');
+    const targetUserId = c.req.param('userId');
+    const { role } = c.req.valid('json');
+
+    // Check requester is owner
+    const [membership] = await db.select().from(boardMembers)
+      .where(and(eq(boardMembers.boardId, boardId), eq(boardMembers.userId, sub))).limit(1);
+    if (!membership || membership.role !== 'owner') throw forbidden('Only owners can change roles');
+
+    // Can't change own role if last owner
+    if (sub === targetUserId && role !== 'owner') {
+      const owners = await db.select().from(boardMembers)
+        .where(and(eq(boardMembers.boardId, boardId), eq(boardMembers.role, 'owner')));
+      if (owners.length <= 1) throw badRequest('Cannot remove last owner');
+    }
+
+    const [updated] = await db.update(boardMembers)
+      .set({ role })
+      .where(and(eq(boardMembers.boardId, boardId), eq(boardMembers.userId, targetUserId)))
+      .returning();
+    if (!updated) throw notFound('Member not found');
+
+    return c.json(updated);
+  }
+);
+
+// Remove member (owner only, or self-leave)
+boardsRouter.delete('/:id/members/:userId', async (c) => {
+    const { sub } = c.get('user');
+    const boardId = c.req.param('id');
+    const targetUserId = c.req.param('userId');
+
+    const [membership] = await db.select().from(boardMembers)
+      .where(and(eq(boardMembers.boardId, boardId), eq(boardMembers.userId, sub))).limit(1);
+    if (!membership) throw notFound('Board not found');
+
+    // Self-leave is always allowed (except last owner)
+    if (sub === targetUserId) {
+      if (membership.role === 'owner') {
+        const owners = await db.select().from(boardMembers)
+          .where(and(eq(boardMembers.boardId, boardId), eq(boardMembers.role, 'owner')));
+        if (owners.length <= 1) throw badRequest('Cannot leave as last owner');
+      }
+    } else if (membership.role !== 'owner') {
+      throw forbidden('Only owners can remove members');
+    }
+
+    await db.delete(boardMembers)
+      .where(and(eq(boardMembers.boardId, boardId), eq(boardMembers.userId, targetUserId)));
+
+    return c.json({ ok: true });
+  }
+);
+
 // Create invite token
 boardsRouter.post('/:id/invite',
   zValidator('json', z.object({

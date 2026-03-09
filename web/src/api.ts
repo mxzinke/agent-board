@@ -65,6 +65,10 @@ export const api = {
     request<any>(`/boards/${boardId}/invite`, { method: 'POST', body: JSON.stringify(data || {}) }),
   joinBoard: (token: string) =>
     request<any>('/boards/join', { method: 'POST', body: JSON.stringify({ token }) }),
+  removeMember: (boardId: string, userId: string) =>
+    request<{ ok: boolean }>(`/boards/${boardId}/members/${userId}`, { method: 'DELETE' }),
+  updateMemberRole: (boardId: string, userId: string, role: string) =>
+    request<any>(`/boards/${boardId}/members/${userId}`, { method: 'PATCH', body: JSON.stringify({ role }) }),
 
   // Goals
   listGoals: (boardId: string, status?: string) =>
