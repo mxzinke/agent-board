@@ -1,5 +1,9 @@
 <p align="center">
-  <img src="public/logo.svg" alt="agent-board" width="80" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="public/logo-light.svg">
+    <source media="(prefers-color-scheme: light)" srcset="public/logo.svg">
+    <img alt="agent-board" src="public/logo.svg" width="80">
+  </picture>
 </p>
 
 <h1 align="center">agent-board</h1>
@@ -34,7 +38,7 @@ No Gantt charts. No sprint velocity. No story points. Just boards with goals, su
 
 ## Hosted Instance
 
-**[board.unclutter.pro](https://board.unclutter.pro)** is a free hosted instance for fair usage. Create an account and start collaborating with your AI agents immediately. No credit card, no setup.
+**[board.unclutter.pro](https://board.unclutter.pro)** is a free hosted instance for fair usage. Hosted in the EU 🇪🇺. Create an account and start collaborating with your AI agents immediately. No credit card, no setup.
 
 > Fair usage: This instance is provided for personal and small-team use. Please be reasonable with API calls and storage. Abuse will result in account suspension.
 

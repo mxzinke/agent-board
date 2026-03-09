@@ -13,11 +13,15 @@ const STATUSES = [
 ];
 
 export function Board() {
-  const { currentBoard, setCurrentBoard, goals, fetchGoals, setSelectedGoal, user } = useStore();
+  const { currentBoard, setCurrentBoard, goals, fetchGoals, setSelectedGoal, user, fetchBoards } = useStore();
   const [loading, setLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
   const [showNewGoal, setShowNewGoal] = useState<string | null>(null);
   const [newGoalTitle, setNewGoalTitle] = useState('');
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const currentMembership = currentBoard?.members?.find((m: any) => m.userId === user?.id);
   const isOwner = currentMembership?.role === 'owner';
@@ -44,6 +48,35 @@ export function Board() {
     try {
       await api.updateMemberRole(currentBoard.id, member.userId, newRole);
       await refreshBoard();
+    } catch (e: any) {
+      alert(e.message);
+    }
+  };
+
+  const startEditing = () => {
+    if (!currentBoard) return;
+    setEditName(currentBoard.name || '');
+    setEditDescription(currentBoard.description || '');
+    setEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!currentBoard || !editName.trim()) return;
+    try {
+      await api.updateBoard(currentBoard.id, { name: editName.trim(), description: editDescription.trim() || undefined });
+      await refreshBoard();
+      setEditing(false);
+    } catch (e: any) {
+      alert(e.message);
+    }
+  };
+
+  const handleDeleteBoard = async () => {
+    if (!currentBoard) return;
+    try {
+      await api.deleteBoard(currentBoard.id);
+      setCurrentBoard(null);
+      await fetchBoards();
     } catch (e: any) {
       alert(e.message);
     }
@@ -80,13 +113,69 @@ export function Board() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">{currentBoard?.name}</h2>
-          {currentBoard?.description && (
-            <p className="text-sm text-zinc-400 dark:text-zinc-500">{currentBoard.description}</p>
+        <div className="flex-1 min-w-0">
+          {editing ? (
+            <div className="flex flex-col gap-2">
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="text-lg font-bold bg-transparent border border-zinc-300 dark:border-zinc-600 px-2 py-1 text-zinc-900 dark:text-zinc-100 outline-none focus:border-zinc-500 dark:focus:border-zinc-400"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSaveEdit(); if (e.key === 'Escape') setEditing(false); }}
+              />
+              <input
+                type="text"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Description (optional)"
+                className="text-sm bg-transparent border border-zinc-300 dark:border-zinc-600 px-2 py-1 text-zinc-600 dark:text-zinc-400 outline-none focus:border-zinc-500 dark:focus:border-zinc-400"
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSaveEdit(); if (e.key === 'Escape') setEditing(false); }}
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSaveEdit}
+                  className="px-3 py-1 text-sm bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-300"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => setEditing(false)}
+                  className="px-3 py-1 text-sm border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-500"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <h2
+                className={`text-lg font-bold text-zinc-900 dark:text-zinc-100 ${isOwner ? 'cursor-pointer hover:text-zinc-600 dark:hover:text-zinc-300' : ''}`}
+                onClick={isOwner ? startEditing : undefined}
+                title={isOwner ? 'Click to edit' : undefined}
+              >
+                {currentBoard?.name}
+              </h2>
+              {currentBoard?.description && (
+                <p
+                  className={`text-sm text-zinc-400 dark:text-zinc-500 ${isOwner ? 'cursor-pointer hover:text-zinc-600 dark:hover:text-zinc-300' : ''}`}
+                  onClick={isOwner ? startEditing : undefined}
+                >
+                  {currentBoard.description}
+                </p>
+              )}
+            </div>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 ml-4">
+          {isOwner && !editing && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="px-3 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 text-red-500 hover:border-red-400 hover:bg-red-50 dark:hover:bg-red-950"
+            >
+              Delete
+            </button>
+          )}
           <button
             onClick={() => setShowInvite(true)}
             className="px-3 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-500"
@@ -95,6 +184,31 @@ export function Board() {
           </button>
         </div>
       </div>
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 p-6 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mb-2">Delete Board</h3>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+              Are you sure you want to delete <strong>{currentBoard?.name}</strong>? This action cannot be undone. All goals, subtasks, and comments will be permanently removed.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-3 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-500"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteBoard}
+                className="px-3 py-1.5 text-sm bg-red-600 text-white hover:bg-red-700"
+              >
+                Delete Board
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Members bar */}
       <div className="flex gap-2 mb-4 text-xs text-zinc-400 dark:text-zinc-500 flex-wrap">
