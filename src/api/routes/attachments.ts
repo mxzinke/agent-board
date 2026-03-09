@@ -9,6 +9,7 @@ import { badRequest, notFound, forbidden } from '../lib/errors';
 import { getStorage } from '../lib/storage';
 import { config } from '../../config';
 import { nanoid } from 'nanoid';
+import { broadcastBoardEvent } from '../lib/broadcast';
 
 const attachmentsRouter = new Hono();
 attachmentsRouter.use('*', authMiddleware, suspensionMiddleware, rateLimitMiddleware);
@@ -93,6 +94,8 @@ attachmentsRouter.post('/goals/:goalId/attachments', async (c) => {
     data = buffer.toString('base64');
   }
 
+  const goal = await verifyGoalAccess(goalId, sub);
+
   const [attachment] = await db.insert(attachments).values({
     goalId,
     uploadedBy: sub,
@@ -109,6 +112,8 @@ attachmentsRouter.post('/goals/:goalId/attachments', async (c) => {
     size: attachments.size,
     createdAt: attachments.createdAt,
   });
+
+  broadcastBoardEvent(goal.boardId, { type: 'goal-updated', goalId });
 
   return c.json(attachment, 201);
 });
@@ -174,6 +179,9 @@ attachmentsRouter.delete('/attachments/:id', async (c) => {
   }
 
   await db.delete(attachments).where(eq(attachments.id, id));
+
+  broadcastBoardEvent(goal.boardId, { type: 'goal-updated', goalId: attachment.goalId });
+
   return c.json({ ok: true });
 });
 

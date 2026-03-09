@@ -9,6 +9,7 @@ import { JoinBoard } from './pages/JoinBoard';
 import { Settings } from './pages/Settings';
 import { Nav } from './components/Nav';
 import { InstallPrompt } from './components/InstallPrompt';
+import { useSSE } from './hooks/useSSE';
 
 export function App() {
   const { user, checkAuth, currentBoard, selectedGoal, setCurrentBoard, setSelectedGoal, loadFromPath } = useStore();
@@ -55,6 +56,9 @@ export function App() {
     if (!user) return <Login />;
     return <JoinBoard navigate={navigate} />;
   }
+
+  // SSE at app level — works on both Board and GoalDetail views
+  useSSE(currentBoard?.id ?? null);
 
   if (!user) return <Login />;
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useStore } from '../store';
+import { api } from '../api';
 
 export function useSSE(boardId: string | null) {
   const fetchGoals = useStore((s) => s.fetchGoals);
@@ -38,6 +39,14 @@ export function useSSE(boardId: string | null) {
           }
           // Refetch goals on any board change
           fetchGoals(boardId!);
+
+          // If a specific goal is selected and was updated, refresh it too
+          const { selectedGoal, setSelectedGoal, currentBoard } = useStore.getState();
+          if (selectedGoal && currentBoard && event.goalId === selectedGoal.id) {
+            api.getGoal(currentBoard.id, selectedGoal.id).then((goal) => {
+              if (!disposed) setSelectedGoal(goal);
+            }).catch(() => {});
+          }
         } catch {
           // Ignore parse errors
         }
