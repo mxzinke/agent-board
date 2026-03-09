@@ -21,7 +21,8 @@ eventsRouter.get('/boards/:boardId/events', async (c) => {
   let payload;
   try {
     payload = await verifyToken(token);
-  } catch {
+  } catch (err) {
+    console.error('[SSE] JWT verify failed:', err);
     return c.json({ error: 'Invalid token' }, 401);
   }
 
