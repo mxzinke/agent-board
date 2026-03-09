@@ -76,6 +76,9 @@ async function setupListener(): Promise<void> {
       } catch {
         // Ignore malformed payloads
       }
+    }, () => {
+      // onlisten — called when subscription is re-established after reconnect
+      console.log('[broadcast] PG LISTEN re-established on channel:', CHANNEL);
     });
     listenerReady = true;
     console.log('[broadcast] PG LISTEN connected on channel:', CHANNEL);
@@ -84,16 +87,6 @@ async function setupListener(): Promise<void> {
     console.error('[broadcast] PG LISTEN failed, reconnecting in', RECONNECT_DELAY_MS, 'ms', err);
     scheduleReconnect();
   }
-
-  // Handle unexpected connection loss — postgres.js fires 'close' on the reserved connection
-  // We detect this by periodically checking if the connection is still alive
-  // postgres.js .listen() automatically handles reconnection internally,
-  // but if the entire connection object fails we need to rebuild it
-  sql.subscribe('error' as any, () => {
-    console.error('[broadcast] LISTEN connection error, reconnecting...');
-    listenerReady = false;
-    scheduleReconnect();
-  }).catch(() => {});
 }
 
 function scheduleReconnect(): void {
