@@ -224,7 +224,9 @@ export function Board() {
                 className="text-xs text-zinc-300 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 ml-1"
                 title={`Role: ${m.role}`}
               >
-                {m.role === 'owner' ? '\u{1F451}' : '\u00B7'}
+                {m.role === 'owner' ? (
+                  <svg className="w-3 h-3 inline" viewBox="0 0 16 16" fill="currentColor"><path d="M2 12h12l-1.5-6L9 8 8 4 7 8 3.5 6z"/><rect x="2" y="12.5" width="12" height="1.5"/></svg>
+                ) : '·'}
               </button>
             )}
             {isOwner && m.userId !== user?.id && (
