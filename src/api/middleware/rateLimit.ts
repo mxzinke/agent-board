@@ -16,11 +16,12 @@ export const rateLimitMiddleware = createMiddleware(async (c, next) => {
 
   const hourTruncated = new Date();
   hourTruncated.setMinutes(0, 0, 0);
+  const hourStr = hourTruncated.toISOString();
 
   // Atomic upsert: increment request count or insert with 1
   const result = await db.execute<{ request_count: number }>(sql`
     INSERT INTO usage_logs (user_id, hour, request_count)
-    VALUES (${userId}, ${hourTruncated}, 1)
+    VALUES (${userId}, ${hourStr}::timestamp, 1)
     ON CONFLICT (user_id, hour) DO UPDATE SET request_count = usage_logs.request_count + 1
     RETURNING request_count
   `);
