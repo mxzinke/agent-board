@@ -4,8 +4,9 @@ WORKDIR /app
 # Install dependencies
 FROM base AS deps
 COPY package.json bun.lock ./
-COPY web/package.json ./web/
 RUN bun install --frozen-lockfile
+COPY web/package.json web/bun.lock ./web/
+RUN cd web && bun install --frozen-lockfile
 
 # Build SPA
 FROM deps AS spa-builder
