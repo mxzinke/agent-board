@@ -15,6 +15,13 @@
       "when": 1773087603997,
       "tag": "0001_mighty_victor_mancha",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773094980796,
+      "tag": "0002_redundant_unus",
+      "breakpoints": true
     }
   ]
 }

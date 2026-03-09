@@ -3,12 +3,16 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db } from '../../db';
 import { comments, goals, boardMembers, users } from '../../db/schema';
-import { eq, and, asc } from 'drizzle-orm';
+import { eq, and, asc, gte, count } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth';
+import { suspensionMiddleware } from '../middleware/suspension';
+import { rateLimitMiddleware } from '../middleware/rateLimit';
 import { notFound, forbidden } from '../lib/errors';
 
 const commentsRouter = new Hono();
 commentsRouter.use('*', authMiddleware);
+commentsRouter.use('*', suspensionMiddleware);
+commentsRouter.use('*', rateLimitMiddleware);
 
 async function requireGoalAccess(goalId: string, userId: string) {
   const [goal] = await db.select().from(goals).where(eq(goals.id, goalId)).limit(1);
@@ -59,6 +63,15 @@ commentsRouter.post('/goals/:goalId/comments',
     const { body } = c.req.valid('json');
 
     await requireGoalAccess(goalId, sub);
+
+    // Check daily comment limit
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const [commentCount] = await db.select({ cnt: count() }).from(comments)
+      .where(and(eq(comments.authorId, sub), gte(comments.createdAt, todayStart)));
+    if (commentCount.cnt >= 500) {
+      return c.json({ error: 'Daily comment limit reached (500)' }, 429);
+    }
 
     const [comment] = await db.insert(comments).values({
       goalId,

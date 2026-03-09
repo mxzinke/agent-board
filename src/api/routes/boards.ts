@@ -5,11 +5,15 @@ import { db } from '../../db';
 import { boards, boardMembers, inviteTokens, users } from '../../db/schema';
 import { eq, and } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth';
+import { suspensionMiddleware } from '../middleware/suspension';
+import { rateLimitMiddleware } from '../middleware/rateLimit';
 import { notFound, forbidden, badRequest } from '../lib/errors';
 import { nanoid } from 'nanoid';
 
 const boardsRouter = new Hono();
 boardsRouter.use('*', authMiddleware);
+boardsRouter.use('*', suspensionMiddleware);
+boardsRouter.use('*', rateLimitMiddleware);
 
 // List boards the user is a member of
 boardsRouter.get('/', async (c) => {

@@ -5,10 +5,14 @@ import { db } from '../../db';
 import { subtasks, goals, boardMembers } from '../../db/schema';
 import { eq, and, asc } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth';
+import { suspensionMiddleware } from '../middleware/suspension';
+import { rateLimitMiddleware } from '../middleware/rateLimit';
 import { notFound, forbidden } from '../lib/errors';
 
 const subtasksRouter = new Hono();
 subtasksRouter.use('*', authMiddleware);
+subtasksRouter.use('*', suspensionMiddleware);
+subtasksRouter.use('*', rateLimitMiddleware);
 
 // Helper: verify goal access
 async function requireGoalAccess(goalId: string, userId: string) {

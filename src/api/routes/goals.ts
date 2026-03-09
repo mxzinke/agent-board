@@ -3,12 +3,16 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db } from '../../db';
 import { goals, boardMembers, subtasks, comments, users, goalStatusEnum } from '../../db/schema';
-import { eq, and, asc } from 'drizzle-orm';
+import { eq, and, asc, count } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth';
-import { notFound, forbidden } from '../lib/errors';
+import { suspensionMiddleware } from '../middleware/suspension';
+import { rateLimitMiddleware } from '../middleware/rateLimit';
+import { notFound, forbidden, badRequest } from '../lib/errors';
 
 const goalsRouter = new Hono();
 goalsRouter.use('*', authMiddleware);
+goalsRouter.use('*', suspensionMiddleware);
+goalsRouter.use('*', rateLimitMiddleware);
 
 // Helper: check board membership
 async function requireBoardMember(boardId: string, userId: string) {
@@ -67,6 +71,10 @@ goalsRouter.post('/boards/:boardId/goals',
     const { title, description, status, assigneeId } = c.req.valid('json');
 
     await requireBoardMember(boardId, sub);
+
+    // Check board goal limit
+    const [goalCount] = await db.select({ cnt: count() }).from(goals).where(eq(goals.boardId, boardId));
+    if (goalCount.cnt >= 200) throw badRequest('Board goal limit reached (200)');
 
     // Get next position
     const existingGoals = await db.select({ position: goals.position })

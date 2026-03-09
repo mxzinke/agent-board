@@ -5,11 +5,15 @@ import { db } from '../../db';
 import { webhooks, boardMembers } from '../../db/schema';
 import { eq, and } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth';
+import { suspensionMiddleware } from '../middleware/suspension';
+import { rateLimitMiddleware } from '../middleware/rateLimit';
 import { notFound, forbidden } from '../lib/errors';
 import { nanoid } from 'nanoid';
 
 const webhooksRouter = new Hono();
 webhooksRouter.use('*', authMiddleware);
+webhooksRouter.use('*', suspensionMiddleware);
+webhooksRouter.use('*', rateLimitMiddleware);
 
 // List webhooks for a board
 webhooksRouter.get('/boards/:boardId/webhooks', async (c) => {

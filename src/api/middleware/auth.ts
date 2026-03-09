@@ -32,7 +32,7 @@ export const authMiddleware = createMiddleware(async (c, next) => {
     const [user] = await db.select().from(users).where(eq(users.id, key.userId)).limit(1);
     if (!user) throw unauthorized('User not found');
 
-    c.set('user', { sub: user.id, username: user.username });
+    c.set('user', { sub: user.id, username: user.username, suspended: user.suspended, suspendReason: user.suspendReason });
     return next();
   }
 

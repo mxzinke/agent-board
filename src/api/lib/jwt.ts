@@ -5,6 +5,8 @@ const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'dev-secret-ch
 export interface JwtPayload {
   sub: string;
   username: string;
+  suspended?: boolean;
+  suspendReason?: string | null;
 }
 
 export async function signToken(payload: JwtPayload): Promise<string> {

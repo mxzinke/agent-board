@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, varchar, boolean, integer, pgEnum, primaryKey } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, varchar, boolean, integer, pgEnum, primaryKey, uniqueIndex } from 'drizzle-orm/pg-core';
 
 export const goalStatusEnum = pgEnum('goal_status', [
   'backlog', 'todo', 'in_progress', 'review', 'done'
@@ -10,6 +10,9 @@ export const users = pgTable('users', {
   passwordHash: text('password_hash').notNull(),
   displayName: varchar('display_name', { length: 128 }),
   isAgent: boolean('is_agent').notNull().default(false),
+  suspended: boolean('suspended').default(false).notNull(),
+  suspendedAt: timestamp('suspended_at'),
+  suspendReason: text('suspend_reason'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -107,3 +110,12 @@ export const webhooks = pgTable('webhooks', {
   createdBy: uuid('created_by').notNull().references(() => users.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const usageLogs = pgTable('usage_logs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  hour: timestamp('hour').notNull(),
+  requestCount: integer('request_count').notNull().default(1),
+}, (table) => [
+  uniqueIndex('usage_logs_user_hour_idx').on(table.userId, table.hour),
+]);
