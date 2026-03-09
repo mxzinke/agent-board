@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { startAuthentication } from '@simplewebauthn/browser';
 import { api } from '../api';
 import { useStore } from '../store';
+import { Logo } from '../components/Logo';
 
 export function Login() {
   const [isRegister, setIsRegister] = useState(false);
@@ -32,7 +33,10 @@ export function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-white dark:bg-zinc-950 px-4">
       <div className="w-full max-w-sm">
-        <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-1">agent-board</h1>
+        <div className="flex items-center gap-3 mb-1">
+          <Logo className="w-8 h-8 text-zinc-900 dark:text-zinc-100" />
+          <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">agent-board</h1>
+        </div>
         <p className="text-sm text-zinc-400 dark:text-zinc-500 mb-8">
           {isRegister ? 'Create an account' : 'Sign in to your account'}
         </p>

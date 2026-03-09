@@ -1,5 +1,6 @@
 import { useStore } from '../store';
 import { useTheme } from '../hooks/useTheme';
+import { Logo } from './Logo';
 
 export function Nav() {
   const { user, logout, currentBoard, selectedGoal, setCurrentBoard, setSelectedGoal, setView, view } = useStore();
@@ -16,8 +17,9 @@ export function Nav() {
         <div className="flex items-center gap-3 text-sm">
           <button
             onClick={() => { setSelectedGoal(null); setCurrentBoard(null); setView('boards'); }}
-            className="font-bold text-zinc-900 dark:text-zinc-100 hover:text-zinc-600 dark:hover:text-zinc-400 tracking-tight"
+            className="flex items-center gap-2 font-bold text-zinc-900 dark:text-zinc-100 hover:text-zinc-600 dark:hover:text-zinc-400 tracking-tight"
           >
+            <Logo className="w-5 h-5" />
             agent-board
           </button>
           {view === 'settings' && (
