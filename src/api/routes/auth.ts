@@ -2,8 +2,8 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db } from '../../db';
-import { users, apiKeys, passkeys } from '../../db/schema';
-import { eq, and } from 'drizzle-orm';
+import { users, apiKeys, passkeys, challenges } from '../../db/schema';
+import { eq, and, lt } from 'drizzle-orm';
 import { hashPassword, verifyPassword } from '../lib/password';
 import { signToken } from '../lib/jwt';
 import { authMiddleware } from '../middleware/auth';
@@ -23,14 +23,29 @@ const rpName = 'agent-board';
 const rpID = process.env.RP_ID || 'board.unclutter.pro';
 const origin = process.env.RP_ORIGIN || 'https://board.unclutter.pro';
 
-// In-memory challenge store with 5-min TTL
-const challengeStore = new Map<string, { challenge: string; ts: number }>();
+// DB-backed challenge store — survives pod restarts
+async function storeChallenge(key: string, challenge: string) {
+  await db.insert(challenges).values({ key, challenge }).onConflictDoUpdate({
+    target: challenges.key,
+    set: { challenge, createdAt: new Date() },
+  });
+}
 
-function cleanupChallenges() {
-  const now = Date.now();
-  for (const [key, val] of challengeStore) {
-    if (now - val.ts > 5 * 60 * 1000) challengeStore.delete(key);
+async function getAndDeleteChallenge(key: string): Promise<string | null> {
+  const [row] = await db.select().from(challenges).where(eq(challenges.key, key)).limit(1);
+  if (!row) return null;
+  // Check 5-min TTL
+  if (Date.now() - row.createdAt.getTime() > 5 * 60 * 1000) {
+    await db.delete(challenges).where(eq(challenges.key, key));
+    return null;
   }
+  await db.delete(challenges).where(eq(challenges.key, key));
+  return row.challenge;
+}
+
+async function cleanupChallenges() {
+  const cutoff = new Date(Date.now() - 5 * 60 * 1000);
+  await db.delete(challenges).where(lt(challenges.createdAt, cutoff));
 }
 
 const auth = new Hono();
@@ -88,6 +103,10 @@ auth.post('/login',
     const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1);
     if (!user) throw unauthorized('Invalid credentials');
 
+    // If user has passkeys, password login is disabled
+    const userPasskeys = await db.select({ id: passkeys.id }).from(passkeys).where(eq(passkeys.userId, user.id)).limit(1);
+    if (userPasskeys.length > 0) throw badRequest('This account uses passkey authentication. Please sign in with your passkey.');
+
     const valid = await verifyPassword(password, user.passwordHash);
     if (!valid) throw unauthorized('Invalid credentials');
 
@@ -129,7 +148,7 @@ auth.post('/passkey/login-options',
     });
 
     const storeKey = body.username || `anon_${nanoid(16)}`;
-    challengeStore.set(storeKey, { challenge: options.challenge, ts: Date.now() });
+    await storeChallenge(storeKey, options.challenge);
 
     return c.json({ options, storeKey });
   }
@@ -143,9 +162,8 @@ auth.post('/passkey/login-verify',
   async (c) => {
     const { storeKey, credential } = c.req.valid('json');
 
-    const stored = challengeStore.get(storeKey);
-    if (!stored) throw badRequest('Challenge expired or not found');
-    challengeStore.delete(storeKey);
+    const challenge = await getAndDeleteChallenge(storeKey);
+    if (!challenge) throw badRequest('Challenge expired or not found');
 
     // Find the passkey by credential ID
     const credentialId = credential.id;
@@ -154,7 +172,7 @@ auth.post('/passkey/login-verify',
 
     const verification = await verifyAuthenticationResponse({
       response: credential,
-      expectedChallenge: stored.challenge,
+      expectedChallenge: challenge,
       expectedOrigin: origin,
       expectedRPID: rpID,
       credential: {
@@ -262,7 +280,7 @@ auth.post('/passkey/register-options', authMiddleware, async (c) => {
     },
   });
 
-  challengeStore.set(`reg_${sub}`, { challenge: options.challenge, ts: Date.now() });
+  await storeChallenge(`reg_${sub}`, options.challenge);
 
   return c.json(options);
 });
@@ -276,13 +294,12 @@ auth.post('/passkey/register-verify', authMiddleware,
     const { sub } = c.get('user');
     const { credential, name } = c.req.valid('json');
 
-    const stored = challengeStore.get(`reg_${sub}`);
-    if (!stored) throw badRequest('Challenge expired or not found');
-    challengeStore.delete(`reg_${sub}`);
+    const challenge = await getAndDeleteChallenge(`reg_${sub}`);
+    if (!challenge) throw badRequest('Challenge expired or not found');
 
     const verification = await verifyRegistrationResponse({
       response: credential,
-      expectedChallenge: stored.challenge,
+      expectedChallenge: challenge,
       expectedOrigin: origin,
       expectedRPID: rpID,
     });

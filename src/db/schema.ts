@@ -124,6 +124,12 @@ export const attachments = pgTable('attachments', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const challenges = pgTable('challenges', {
+  key: varchar('key', { length: 256 }).primaryKey(),
+  challenge: text('challenge').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const usageLogs = pgTable('usage_logs', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
