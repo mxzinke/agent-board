@@ -9,6 +9,7 @@ import { suspensionMiddleware } from '../middleware/suspension';
 import { rateLimitMiddleware } from '../middleware/rateLimit';
 import { notFound, forbidden, badRequest } from '../lib/errors';
 import { config } from '../../config';
+import { broadcastBoardEvent } from '../lib/broadcast';
 
 const goalsRouter = new Hono();
 goalsRouter.use('*', authMiddleware);
@@ -93,6 +94,8 @@ goalsRouter.post('/boards/:boardId/goals',
       createdBy: sub,
     }).returning();
 
+    broadcastBoardEvent(boardId, { type: 'goal-created', goalId: goal.id });
+
     return c.json(goal, 201);
   }
 );
@@ -159,6 +162,8 @@ goalsRouter.patch('/boards/:boardId/goals/:id',
       .where(eq(goals.id, id))
       .returning();
 
+    broadcastBoardEvent(boardId, { type: 'goal-updated', goalId: id });
+
     return c.json(goal);
   }
 );
@@ -176,6 +181,9 @@ goalsRouter.delete('/boards/:boardId/goals/:id', async (c) => {
   if (!existing) throw notFound('Goal not found');
 
   await db.delete(goals).where(eq(goals.id, id));
+
+  broadcastBoardEvent(boardId, { type: 'goal-deleted', goalId: id });
+
   return c.json({ ok: true });
 });
 

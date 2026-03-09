@@ -8,6 +8,7 @@ import { authMiddleware } from '../middleware/auth';
 import { suspensionMiddleware } from '../middleware/suspension';
 import { rateLimitMiddleware } from '../middleware/rateLimit';
 import { notFound, forbidden } from '../lib/errors';
+import { broadcastBoardEvent } from '../lib/broadcast';
 
 const subtasksRouter = new Hono();
 subtasksRouter.use('*', authMiddleware);
@@ -50,7 +51,7 @@ subtasksRouter.post('/goals/:goalId/subtasks',
     const goalId = c.req.param('goalId');
     const { title } = c.req.valid('json');
 
-    await requireGoalAccess(goalId, sub);
+    const goal = await requireGoalAccess(goalId, sub);
 
     const existing = await db.select({ position: subtasks.position })
       .from(subtasks).where(eq(subtasks.goalId, goalId));
@@ -61,6 +62,8 @@ subtasksRouter.post('/goals/:goalId/subtasks',
       title,
       position: maxPos + 1000,
     }).returning();
+
+    broadcastBoardEvent(goal.boardId, { type: 'subtask-updated', goalId });
 
     return c.json(subtask, 201);
   }
@@ -79,13 +82,15 @@ subtasksRouter.patch('/goals/:goalId/subtasks/:id',
     const id = c.req.param('id');
     const updates = c.req.valid('json');
 
-    await requireGoalAccess(goalId, sub);
+    const goal = await requireGoalAccess(goalId, sub);
 
     const [subtask] = await db.update(subtasks)
       .set(updates)
       .where(and(eq(subtasks.id, id), eq(subtasks.goalId, goalId)))
       .returning();
     if (!subtask) throw notFound('Subtask not found');
+
+    broadcastBoardEvent(goal.boardId, { type: 'subtask-updated', goalId });
 
     return c.json(subtask);
   }
@@ -97,9 +102,12 @@ subtasksRouter.delete('/goals/:goalId/subtasks/:id', async (c) => {
   const goalId = c.req.param('goalId');
   const id = c.req.param('id');
 
-  await requireGoalAccess(goalId, sub);
+  const goal = await requireGoalAccess(goalId, sub);
 
   await db.delete(subtasks).where(and(eq(subtasks.id, id), eq(subtasks.goalId, goalId)));
+
+  broadcastBoardEvent(goal.boardId, { type: 'subtask-updated', goalId });
+
   return c.json({ ok: true });
 });
 

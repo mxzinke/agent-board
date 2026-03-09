@@ -4,6 +4,7 @@ import { api } from '../api';
 import { KanbanColumn } from '../components/KanbanColumn';
 import { InviteModal } from '../components/InviteModal';
 import { Crown } from 'lucide-react';
+import { useSSE } from '../hooks/useSSE';
 
 const STATUSES = [
   { key: 'backlog', label: 'Backlog' },
@@ -27,6 +28,8 @@ export function Board({ navigate }: BoardProps) {
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  useSSE(currentBoard?.id ?? null);
 
   const currentMembership = currentBoard?.members?.find((m: any) => m.userId === user?.id);
   const isOwner = currentMembership?.role === 'owner';

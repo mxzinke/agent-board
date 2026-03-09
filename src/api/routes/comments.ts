@@ -9,6 +9,7 @@ import { suspensionMiddleware } from '../middleware/suspension';
 import { rateLimitMiddleware } from '../middleware/rateLimit';
 import { notFound, forbidden } from '../lib/errors';
 import { config } from '../../config';
+import { broadcastBoardEvent } from '../lib/broadcast';
 
 const commentsRouter = new Hono();
 commentsRouter.use('*', authMiddleware);
@@ -63,7 +64,7 @@ commentsRouter.post('/goals/:goalId/comments',
     const goalId = c.req.param('goalId');
     const { body } = c.req.valid('json');
 
-    await requireGoalAccess(goalId, sub);
+    const goal = await requireGoalAccess(goalId, sub);
 
     // Check daily comment limit
     const todayStart = new Date();
@@ -86,6 +87,8 @@ commentsRouter.post('/goals/:goalId/comments',
       displayName: users.displayName,
       isAgent: users.isAgent
     }).from(users).where(eq(users.id, sub)).limit(1);
+
+    broadcastBoardEvent(goal.boardId, { type: 'comment-added', goalId });
 
     return c.json({
       ...comment,
