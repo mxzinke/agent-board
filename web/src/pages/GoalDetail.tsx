@@ -127,10 +127,11 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
 
   const handleDelete = async () => {
     if (!confirm('Delete this goal?')) return;
-    await api.deleteGoal(currentBoard.id, selectedGoal.id);
+    const boardId = currentBoard.id;
+    await api.deleteGoal(boardId, selectedGoal.id);
+    navigate('/b/' + boardId);
     setSelectedGoal(null);
-    await fetchGoals(currentBoard.id);
-    navigate('/b/' + currentBoard.id);
+    fetchGoals(boardId);
   };
 
   const handleBack = () => {
