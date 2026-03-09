@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <!-- 3x3 grid board -->
+  <!-- Row 1 -->
+  <rect x="8" y="8" width="28" height="28" fill="#18181b" opacity="0.15"/>
+  <rect x="42" y="8" width="28" height="28" fill="#18181b" opacity="0.15"/>
+  <rect x="76" y="8" width="28" height="28" fill="#18181b" opacity="0.15"/>
+  <!-- Row 2 -->
+  <rect x="8" y="42" width="28" height="28" fill="#18181b" opacity="0.15"/>
+  <rect x="42" y="42" width="28" height="28" fill="#18181b" opacity="0.4"/>
+  <rect x="76" y="42" width="28" height="28" fill="#18181b" opacity="0.15"/>
+  <!-- Row 3 -->
+  <rect x="8" y="76" width="28" height="28" fill="#18181b" opacity="0.15"/>
+  <rect x="76" y="76" width="28" height="28" fill="#18181b" opacity="0.15"/>
+  <!-- Agent cell — bottom center, distinct -->
+  <rect x="42" y="76" width="28" height="28" fill="#18181b"/>
+  <!-- Cursor/agent indicator in the active cell -->
+  <rect x="50" y="82" width="3" height="16" fill="#fff"/>
+  <rect x="57" y="86" width="3" height="12" fill="#fff" opacity="0.6"/>
+  <rect x="64" y="84" width="3" height="14" fill="#fff" opacity="0.3"/>
+</svg>
