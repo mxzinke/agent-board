@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { startAuthentication } from '@simplewebauthn/browser';
 import { api } from '../api';
 import { useStore } from '../store';
 
@@ -9,6 +10,7 @@ export function Login() {
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
   const setAuth = useStore((s) => s.setAuth);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -72,6 +74,37 @@ export function Login() {
             {loading ? '...' : isRegister ? 'Create account' : 'Sign in'}
           </button>
         </form>
+
+        {!isRegister && (
+          <>
+            <div className="flex items-center gap-3 my-4">
+              <div className="flex-1 h-px bg-zinc-200" />
+              <span className="text-xs text-zinc-400">or</span>
+              <div className="flex-1 h-px bg-zinc-200" />
+            </div>
+            <button
+              type="button"
+              disabled={passkeyLoading}
+              onClick={async () => {
+                setError('');
+                setPasskeyLoading(true);
+                try {
+                  const { options, storeKey } = await api.passkeyLoginOptions(username || undefined);
+                  const credential = await startAuthentication({ optionsJSON: options });
+                  const result = await api.passkeyLoginVerify({ storeKey, credential });
+                  setAuth(result.user, result.token);
+                } catch (err: any) {
+                  setError(err.message || 'Passkey authentication failed');
+                } finally {
+                  setPasskeyLoading(false);
+                }
+              }}
+              className="w-full py-2 border border-zinc-200 text-zinc-700 text-sm font-medium hover:bg-zinc-50 disabled:opacity-50"
+            >
+              {passkeyLoading ? '...' : 'Sign in with Passkey'}
+            </button>
+          </>
+        )}
 
         <button
           onClick={() => { setIsRegister(!isRegister); setError(''); }}

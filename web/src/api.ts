@@ -33,6 +33,25 @@ export const api = {
   deleteApiKey: (id: string) =>
     request<{ ok: boolean }>(`/auth/api-keys/${id}`, { method: 'DELETE' }),
 
+  // Profile & Password
+  updateProfile: (data: { displayName: string }) =>
+    request<any>('/auth/me', { method: 'PATCH', body: JSON.stringify(data) }),
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    request<{ ok: boolean }>('/auth/change-password', { method: 'POST', body: JSON.stringify(data) }),
+
+  // Passkeys
+  passkeyRegisterOptions: () =>
+    request<any>('/auth/passkey/register-options', { method: 'POST' }),
+  passkeyRegisterVerify: (data: { credential: any; name?: string }) =>
+    request<any>('/auth/passkey/register-verify', { method: 'POST', body: JSON.stringify(data) }),
+  passkeyLoginOptions: (username?: string) =>
+    request<any>('/auth/passkey/login-options', { method: 'POST', body: JSON.stringify({ username }) }),
+  passkeyLoginVerify: (data: { storeKey: string; credential: any }) =>
+    request<{ user: any; token: string }>('/auth/passkey/login-verify', { method: 'POST', body: JSON.stringify(data) }),
+  listPasskeys: () => request<any[]>('/auth/passkeys'),
+  deletePasskey: (id: string) =>
+    request<{ ok: boolean }>(`/auth/passkeys/${id}`, { method: 'DELETE' }),
+
   // Boards
   listBoards: () => request<any[]>('/boards'),
   createBoard: (data: { name: string; description?: string }) =>
