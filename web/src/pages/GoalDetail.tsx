@@ -32,12 +32,43 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
   const assigneeDropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!selectedGoal || !currentBoard) return null;
-
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
+    if (!currentBoard || !selectedGoal) return;
     const goal = await api.getGoal(currentBoard.id, selectedGoal.id);
     setSelectedGoal(goal);
-  };
+  }, [currentBoard?.id, selectedGoal?.id]);
+
+  const loadAttachments = useCallback(async () => {
+    if (!selectedGoal) return;
+    try {
+      const files = await api.listAttachments(selectedGoal.id);
+      setAttachmentsList(files);
+    } catch { /* ignore */ }
+  }, [selectedGoal?.id]);
+
+  useEffect(() => { loadAttachments(); }, [loadAttachments]);
+
+  // Listen for SSE-triggered refreshes (attachments, comments)
+  useEffect(() => {
+    const handler = () => { loadAttachments(); };
+    window.addEventListener('goal-detail-refresh', handler);
+    return () => window.removeEventListener('goal-detail-refresh', handler);
+  }, [loadAttachments]);
+
+  // Close assignee dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (assigneeDropdownRef.current && !assigneeDropdownRef.current.contains(e.target as Node)) {
+        setAssigneeDropdownOpen(false);
+      }
+    };
+    if (assigneeDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [assigneeDropdownOpen]);
+
+  if (!selectedGoal || !currentBoard) return null;
 
   const handleSave = async () => {
     await api.updateGoal(currentBoard.id, selectedGoal.id, { title, description });
@@ -83,36 +114,6 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
     setNewComment('');
     await refresh();
   };
-
-  const loadAttachments = useCallback(async () => {
-    if (!selectedGoal) return;
-    try {
-      const files = await api.listAttachments(selectedGoal.id);
-      setAttachmentsList(files);
-    } catch { /* ignore */ }
-  }, [selectedGoal?.id]);
-
-  useEffect(() => { loadAttachments(); }, [loadAttachments]);
-
-  // Listen for SSE-triggered refreshes (attachments, comments)
-  useEffect(() => {
-    const handler = () => { loadAttachments(); };
-    window.addEventListener('goal-detail-refresh', handler);
-    return () => window.removeEventListener('goal-detail-refresh', handler);
-  }, [loadAttachments]);
-
-  // Close assignee dropdown on click outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (assigneeDropdownRef.current && !assigneeDropdownRef.current.contains(e.target as Node)) {
-        setAssigneeDropdownOpen(false);
-      }
-    };
-    if (assigneeDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [assigneeDropdownOpen]);
 
   const handleAssigneeChange = async (assigneeId: string | null) => {
     setAssigneeDropdownOpen(false);

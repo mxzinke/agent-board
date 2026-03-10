@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db } from '../../db';
 import { users, apiKeys, passkeys, challenges } from '../../db/schema';
-import { eq, and, lt } from 'drizzle-orm';
+import { eq, and, lt, sql } from 'drizzle-orm';
 import { hashPassword, verifyPassword } from '../lib/password';
 import { signToken } from '../lib/jwt';
 import { authMiddleware } from '../middleware/auth';
@@ -33,15 +33,13 @@ async function storeChallenge(key: string, challenge: string) {
 }
 
 async function getAndDeleteChallenge(key: string): Promise<string | null> {
-  const [row] = await db.select().from(challenges).where(eq(challenges.key, key)).limit(1);
-  if (!row) return null;
-  // Check 5-min TTL
-  if (Date.now() - row.createdAt.getTime() > 5 * 60 * 1000) {
-    await db.delete(challenges).where(eq(challenges.key, key));
-    return null;
-  }
-  await db.delete(challenges).where(eq(challenges.key, key));
-  return row.challenge;
+  // Atomic delete-and-return to prevent race conditions (replay attacks)
+  const cutoff = new Date(Date.now() - 5 * 60 * 1000);
+  const result = await db.delete(challenges)
+    .where(and(eq(challenges.key, key), lt(cutoff, challenges.createdAt)))
+    .returning();
+  if (result.length === 0) return null;
+  return result[0].challenge;
 }
 
 async function cleanupChallenges() {
