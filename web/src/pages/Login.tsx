@@ -142,7 +142,7 @@ export function Login() {
           <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">agent-board</h1>
         </div>
         <p className="text-sm text-zinc-400 dark:text-zinc-500 mb-8">
-          {isRegister ? 'Create an account' : 'Sign in to your account'}
+          {isRegister ? 'Create an account — solve a quick visual puzzle to verify you\'re human' : 'Sign in to your account'}
         </p>
 
         {/* Registration mode toggle */}
