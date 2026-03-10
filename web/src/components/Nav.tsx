@@ -1,5 +1,6 @@
 import { useStore } from '../store';
 import { useTheme } from '../hooks/useTheme';
+import { useSSEStatus } from '../hooks/useSSE';
 import { Logo } from './Logo';
 import { Sun, Moon, Monitor, Settings, LogOut, Crown } from 'lucide-react';
 
@@ -11,6 +12,7 @@ interface NavProps {
 export function Nav({ navigate, path }: NavProps) {
   const { user, logout, currentBoard, selectedGoal, setCurrentBoard, setSelectedGoal } = useStore();
   const { theme, setTheme } = useTheme();
+  const sseStatus = useSSEStatus((s) => s.status);
 
   const isSettings = path === '/settings';
 
@@ -73,6 +75,15 @@ export function Nav({ navigate, path }: NavProps) {
           )}
         </div>
         <div className="flex items-center gap-3 sm:gap-4 text-sm">
+          {currentBoard && sseStatus !== 'connected' && (
+            <span
+              className="flex items-center gap-1.5 text-xs text-amber-500 dark:text-amber-400"
+              title={sseStatus === 'connecting' ? 'Reconnecting...' : 'Disconnected'}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${sseStatus === 'connecting' ? 'bg-amber-500 dark:bg-amber-400 animate-pulse' : 'bg-red-500 dark:bg-red-400'}`} />
+              <span className="hidden sm:inline">{sseStatus === 'connecting' ? 'Reconnecting' : 'Offline'}</span>
+            </span>
+          )}
           <span className="text-zinc-400 dark:text-zinc-500 hidden sm:inline">
             {user?.displayName || user?.username}
             {user?.isAgent && <span className="ml-1 text-xs bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">agent</span>}
