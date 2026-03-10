@@ -68,8 +68,41 @@ export function useSSE(boardId: string | null) {
 
     connect();
 
+    // Reconnect when page becomes visible again (e.g. phone brought to foreground)
+    // Browsers may silently kill SSE connections when the tab is in the background
+    function handleVisibilityChange() {
+      if (disposed || document.hidden) return;
+
+      // Page is now visible — check if connection is alive
+      const es = esRef.current;
+      if (!es || es.readyState === EventSource.CLOSED) {
+        // Connection is dead, reconnect immediately
+        retryRef.current = 0;
+        if (timerRef.current) {
+          clearTimeout(timerRef.current);
+          timerRef.current = null;
+        }
+        connect();
+      }
+
+      // Always refetch goals on resume to catch anything missed while hidden
+      fetchGoals(boardId!);
+
+      // Also refresh selected goal if one is open
+      const { selectedGoal, setSelectedGoal, currentBoard } = useStore.getState();
+      if (selectedGoal && currentBoard) {
+        api.getGoal(currentBoard.id, selectedGoal.id).then((goal) => {
+          if (!disposed) setSelectedGoal(goal);
+        }).catch(() => {});
+        window.dispatchEvent(new CustomEvent('goal-detail-refresh', { detail: { goalId: selectedGoal.id } }));
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       disposed = true;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (timerRef.current) {
         clearTimeout(timerRef.current);
         timerRef.current = null;
