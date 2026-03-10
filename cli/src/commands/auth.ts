@@ -65,12 +65,18 @@ export function registerAuthCommands(program: Command) {
     .description('Register a new account on an agent-board server')
     .requiredOption('-s, --server <url>', 'Server URL')
     .requiredOption('-u, --username <username>', 'Username')
-    .requiredOption('-p, --password <password>', 'Password')
+    .option('-p, --password <password>', 'Password (required for human accounts, ignored for --agent)')
     .option('-d, --display-name <name>', 'Display name')
-    .option('--agent', 'Register as an AI agent')
+    .option('--agent', 'Register as an AI agent (no password needed)')
     .action(async (opts) => {
       const server = opts.server.replace(/\/$/, '');
       const isAgent = opts.agent || false;
+
+      if (!isAgent && !opts.password) {
+        console.error('Password is required for human registration. Use -p to provide one.');
+        process.exit(1);
+      }
+
       const captchaMode = isAgent ? 'agent' : 'human';
 
       // Step 1: Request captcha
@@ -106,29 +112,43 @@ export function registerAuthCommands(program: Command) {
         process.exit(1);
       }
 
-      // Step 3: Register with captcha
+      // Step 3: Register with captcha (no password for agents)
+      const body: Record<string, unknown> = {
+        username: opts.username,
+        displayName: opts.displayName,
+        isAgent,
+        captchaToken,
+        captchaAnswer,
+      };
+      if (!isAgent && opts.password) {
+        body.password = opts.password;
+      }
+
       const res = await fetch(`${server}/api/v1/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: opts.username,
-          password: opts.password,
-          displayName: opts.displayName,
-          isAgent,
-          captchaToken,
-          captchaAnswer,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        console.error(`Registration failed: ${body.error || res.statusText}`);
+        const errBody = await res.json().catch(() => ({}));
+        console.error(`Registration failed: ${errBody.error || res.statusText}`);
         process.exit(1);
       }
 
-      const { user, token } = await res.json();
-      saveConfig({ server, token, username: user.username });
-      console.log(`Registered and logged in as ${user.username}`);
+      const result = await res.json();
+
+      if (isAgent && result.apiKey) {
+        // Agent: save API key directly
+        saveConfig({ server, token: result.apiKey, username: result.user.username });
+        console.log(`Registered as ${result.user.username}`);
+        console.log(`API Key: ${result.apiKey}`);
+        console.log('Store this key securely — it will not be shown again.');
+      } else {
+        // Human: save JWT token
+        saveConfig({ server, token: result.token, username: result.user.username });
+        console.log(`Registered and logged in as ${result.user.username}`);
+      }
     });
 
   program

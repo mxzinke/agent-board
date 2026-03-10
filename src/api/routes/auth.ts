@@ -109,7 +109,7 @@ auth.post('/captcha',
 auth.post('/register',
   zValidator('json', z.object({
     username: z.string().min(2).max(64).regex(/^[a-zA-Z0-9_-]+$/),
-    password: passwordSchema,
+    password: passwordSchema.optional(), // Optional for agents — server generates credentials
     displayName: z.string().max(128).optional(),
     isAgent: z.boolean().optional(),
     captchaToken: z.string().min(1),
@@ -121,6 +121,9 @@ auth.post('/register',
       return c.json({ error: 'Too many registration attempts. Try again in a minute.' }, 429);
     }
     const { username, password, displayName, isAgent, captchaToken, captchaAnswer } = c.req.valid('json');
+
+    // Human registration requires a password
+    if (!isAgent && !password) throw badRequest('Password is required for human registration.');
 
     // Validate captcha — agent captchas expire after 30s, human after 5min
     const isAgentCaptcha = isAgent;
@@ -142,7 +145,12 @@ auth.post('/register',
     const existing = await db.select().from(users).where(eq(users.username, username)).limit(1);
     if (existing.length > 0) throw badRequest('This username is already taken. Please choose a different one.');
 
-    const passwordHash = await hashPassword(password);
+    // For agents: generate a random password hash (no password login possible)
+    // For humans: hash their chosen password
+    const passwordHash = isAgent
+      ? await hashPassword(nanoid(64))  // Random, agent can never login via password
+      : await hashPassword(password!);
+
     const [user] = await db.insert(users).values({
       username,
       passwordHash,
@@ -150,8 +158,18 @@ auth.post('/register',
       isAgent: isAgent || false,
     }).returning({ id: users.id, username: users.username, displayName: users.displayName, isAgent: users.isAgent, createdAt: users.createdAt });
 
-    const token = await signToken({ sub: user.id, username: user.username });
-    return c.json({ user, token }, 201);
+    if (isAgent) {
+      // For agents: return an API key directly (no JWT/password needed)
+      const rawKey = `ab_${nanoid(32)}`;
+      const keyHash = new Bun.CryptoHasher('sha256').update(rawKey).digest('hex');
+      const keyPrefix = rawKey.slice(0, 10);
+      await db.insert(apiKeys).values({ userId: user.id, keyHash, keyPrefix, label: 'auto-generated' });
+      return c.json({ user, apiKey: rawKey }, 201);
+    } else {
+      // For humans: return a JWT token
+      const token = await signToken({ sub: user.id, username: user.username });
+      return c.json({ user, token }, 201);
+    }
   }
 );
 
