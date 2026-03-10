@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid';
 
-// ─── Human Captcha: Math & text puzzles rendered as SVG ───
+// ─── Human Captcha: Letter-counting puzzles rendered as masked SVG ───
 
 interface CaptchaChallenge {
   token: string;
@@ -18,6 +18,373 @@ interface AgentCaptcha extends CaptchaChallenge {
 function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
+
+// ─── Pixel font: 5x7 dot matrix for each character (no <text> elements) ───
+// Each char is a 5-wide × 7-tall grid. 1 = filled, 0 = empty.
+const PIXEL_FONT: Record<string, number[][]> = {
+  'a': [
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+  ],
+  'b': [
+    [1, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 1, 1, 1, 0],
+  ],
+  'c': [
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [1, 0, 0, 0, 1],
+    [0, 1, 1, 1, 0],
+  ],
+  'd': [
+    [1, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 1, 1, 1, 0],
+  ],
+  'e': [
+    [1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [1, 1, 1, 1, 0],
+    [1, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1],
+  ],
+  'f': [
+    [1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [1, 1, 1, 1, 0],
+    [1, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+  ],
+  'g': [
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0],
+    [1, 0, 1, 1, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [0, 1, 1, 1, 0],
+  ],
+  'h': [
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+  ],
+  'i': [
+    [1, 1, 1, 1, 1],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [1, 1, 1, 1, 1],
+  ],
+  'j': [
+    [0, 0, 1, 1, 1],
+    [0, 0, 0, 1, 0],
+    [0, 0, 0, 1, 0],
+    [0, 0, 0, 1, 0],
+    [1, 0, 0, 1, 0],
+    [1, 0, 0, 1, 0],
+    [0, 1, 1, 0, 0],
+  ],
+  'k': [
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 1, 0],
+    [1, 0, 1, 0, 0],
+    [1, 1, 0, 0, 0],
+    [1, 0, 1, 0, 0],
+    [1, 0, 0, 1, 0],
+    [1, 0, 0, 0, 1],
+  ],
+  'l': [
+    [1, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1],
+  ],
+  'm': [
+    [1, 0, 0, 0, 1],
+    [1, 1, 0, 1, 1],
+    [1, 0, 1, 0, 1],
+    [1, 0, 1, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+  ],
+  'n': [
+    [1, 0, 0, 0, 1],
+    [1, 1, 0, 0, 1],
+    [1, 0, 1, 0, 1],
+    [1, 0, 0, 1, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+  ],
+  'o': [
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [0, 1, 1, 1, 0],
+  ],
+  'p': [
+    [1, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 1, 1, 1, 0],
+    [1, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+  ],
+  'q': [
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 1, 0, 1],
+    [1, 0, 0, 1, 0],
+    [0, 1, 1, 0, 1],
+  ],
+  'r': [
+    [1, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 1, 1, 1, 0],
+    [1, 0, 1, 0, 0],
+    [1, 0, 0, 1, 0],
+    [1, 0, 0, 0, 1],
+  ],
+  's': [
+    [0, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [0, 1, 1, 1, 0],
+    [0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 0],
+  ],
+  't': [
+    [1, 1, 1, 1, 1],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+  ],
+  'u': [
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [0, 1, 1, 1, 0],
+  ],
+  'v': [
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [0, 1, 0, 1, 0],
+    [0, 1, 0, 1, 0],
+    [0, 0, 1, 0, 0],
+  ],
+  'w': [
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 1, 0, 1],
+    [1, 0, 1, 0, 1],
+    [1, 1, 0, 1, 1],
+    [1, 0, 0, 0, 1],
+  ],
+  'x': [
+    [1, 0, 0, 0, 1],
+    [0, 1, 0, 1, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 1, 0, 1, 0],
+    [1, 0, 0, 0, 1],
+  ],
+  'y': [
+    [1, 0, 0, 0, 1],
+    [0, 1, 0, 1, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+  ],
+  'z': [
+    [1, 1, 1, 1, 1],
+    [0, 0, 0, 1, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 1, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1],
+  ],
+  ' ': [
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+  ],
+  '"': [
+    [0, 1, 0, 1, 0],
+    [0, 1, 0, 1, 0],
+    [0, 1, 0, 1, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+  ],
+  '=': [
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+  ],
+  '?': [
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [0, 0, 0, 1, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 1, 0, 0],
+  ],
+  '0': [
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 1, 1],
+    [1, 0, 1, 0, 1],
+    [1, 1, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [0, 1, 1, 1, 0],
+  ],
+  '1': [
+    [0, 0, 1, 0, 0],
+    [0, 1, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 1, 1, 1, 0],
+  ],
+  '2': [
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [0, 0, 0, 0, 1],
+    [0, 0, 1, 1, 0],
+    [0, 1, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1],
+  ],
+  '3': [
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [0, 0, 0, 0, 1],
+    [0, 0, 1, 1, 0],
+    [0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [0, 1, 1, 1, 0],
+  ],
+  '4': [
+    [0, 0, 0, 1, 0],
+    [0, 0, 1, 1, 0],
+    [0, 1, 0, 1, 0],
+    [1, 0, 0, 1, 0],
+    [1, 1, 1, 1, 1],
+    [0, 0, 0, 1, 0],
+    [0, 0, 0, 1, 0],
+  ],
+  '5': [
+    [1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0],
+    [1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [0, 1, 1, 1, 0],
+  ],
+  '6': [
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [1, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [0, 1, 1, 1, 0],
+  ],
+  '7': [
+    [1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 1],
+    [0, 0, 0, 1, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+  ],
+  '8': [
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [0, 1, 1, 1, 0],
+  ],
+  '9': [
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [0, 1, 1, 1, 1],
+    [0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 1],
+    [0, 1, 1, 1, 0],
+  ],
+};
+
+// ─── SVG rendering with pixel font (no <text> elements) ───
 
 function generateNoiseLine(width: number, height: number): string {
   const x1 = randomInt(0, width);
@@ -38,120 +405,141 @@ function generateNoiseCircle(width: number, height: number): string {
   return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="1" opacity="${(randomInt(2, 5) / 10).toFixed(1)}"/>`;
 }
 
-function renderCharAsSvg(char: string, x: number, y: number, fontSize?: number): string {
-  const rotation = randomInt(-15, 15);
-  const fs = fontSize ?? randomInt(28, 36);
-  const dx = randomInt(-3, 3);
-  const dy = randomInt(-3, 3);
-  const escaped = char === '&' ? '&amp;' : char === '<' ? '&lt;' : char === '>' ? '&gt;' : char === '"' ? '&quot;' : char;
-  return `<text x="${x + dx}" y="${y + dy}" font-size="${fs}" font-family="monospace, serif" font-weight="${randomInt(4, 7) * 100}" fill="#222" transform="rotate(${rotation}, ${x + dx}, ${y + dy})">${escaped}</text>`;
+function renderCharPixels(char: string, offsetX: number, offsetY: number, pixelSize: number): string {
+  const grid = PIXEL_FONT[char.toLowerCase()];
+  if (!grid) return ''; // Unknown char — skip
+
+  let result = '';
+  const jitter = Math.max(0, Math.floor(pixelSize * 0.25));
+
+  for (let row = 0; row < grid.length; row++) {
+    for (let col = 0; col < grid[row].length; col++) {
+      if (grid[row][col]) {
+        const x = offsetX + col * pixelSize + randomInt(-jitter, jitter);
+        const y = offsetY + row * pixelSize + randomInt(-jitter, jitter);
+        const size = pixelSize + randomInt(-1, 1);
+        const colors = ['#111', '#222', '#333', '#1a1a1a', '#2a2a2a'];
+        const fill = colors[randomInt(0, colors.length - 1)];
+
+        // Mix shapes: rects and circles for more organic look
+        if (randomInt(0, 2) === 0) {
+          result += `<circle cx="${x + size / 2}" cy="${y + size / 2}" r="${size / 2}" fill="${fill}"/>`;
+        } else {
+          const rx = randomInt(0, 2);
+          result += `<rect x="${x}" y="${y}" width="${size}" height="${size}" fill="${fill}" rx="${rx}"/>`;
+        }
+      }
+    }
+  }
+  return result;
 }
 
-function renderTextAsSvg(text: string, options?: { width?: number; charSpacing?: number; fontSize?: number }): string {
-  const charSpacing = options?.charSpacing ?? 22;
-  const width = options?.width ?? Math.max(220, text.length * charSpacing + 40);
-  const height = 70;
-  const fontSize = options?.fontSize;
+function renderMaskedSvg(text: string): string {
+  const maxWidth = 380;
+  const padding = 24;
+
+  // Auto-scale pixel size to fit within maxWidth
+  const availableWidth = maxWidth - padding;
+  // charWidth = 5 * pixelSize + spacing, we need text.length * charWidth <= availableWidth
+  // Start with pixelSize=3, reduce if needed
+  let pixelSize = 3;
+  while (pixelSize > 1 && text.length * (5 * pixelSize + Math.max(2, pixelSize)) > availableWidth) {
+    pixelSize--;
+  }
+
+  const charSpacing = Math.max(2, pixelSize);
+  const charWidth = 5 * pixelSize + charSpacing;
+  const charHeight = 7 * pixelSize;
+
+  const width = Math.min(maxWidth, text.length * charWidth + padding);
+  const height = charHeight + 20;
 
   let svgContent = '';
 
   // Background
   svgContent += `<rect width="${width}" height="${height}" fill="#f5f5f0" rx="4"/>`;
 
-  // Noise lines
-  for (let i = 0; i < 6; i++) {
+  // Noise lines (behind text)
+  for (let i = 0; i < 8; i++) {
     svgContent += generateNoiseLine(width, height);
   }
 
   // Noise circles
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 5; i++) {
     svgContent += generateNoiseCircle(width, height);
   }
 
-  // Render each character with distortion
-  const totalWidth = text.length * charSpacing;
-  const startX = Math.max(10, Math.floor((width - totalWidth) / 2));
-  const baseY = 48;
+  // Render each character as pixel art
+  const totalWidth = text.length * charWidth;
+  const startX = Math.max(8, Math.floor((width - totalWidth) / 2));
+  const startY = Math.floor((height - charHeight) / 2);
+
   for (let i = 0; i < text.length; i++) {
-    svgContent += renderCharAsSvg(text[i], startX + i * charSpacing, baseY, fontSize);
+    svgContent += renderCharPixels(text[i], startX + i * charWidth, startY, pixelSize);
   }
 
   // More noise on top
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 4; i++) {
     svgContent += generateNoiseLine(width, height);
+  }
+  for (let i = 0; i < 3; i++) {
+    svgContent += generateNoiseCircle(width, height);
   }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${svgContent}</svg>`;
 }
 
-// ─── Human captcha generators ───
+// ─── Human captcha generators (letter counting only) ───
 
-type HumanCaptchaGenerator = () => { text: string; answer: string; wide?: boolean };
+interface LetterCountPair {
+  word: string;
+  letter: string;
+}
 
-const humanChallenges: HumanCaptchaGenerator[] = [
-  // Math: addition
-  () => {
-    const a = randomInt(2, 30);
-    const b = randomInt(2, 30);
-    return { text: `${a} + ${b} = ?`, answer: String(a + b) };
-  },
-  // Math: subtraction
-  () => {
-    const a = randomInt(10, 40);
-    const b = randomInt(2, a - 1);
-    return { text: `${a} - ${b} = ?`, answer: String(a - b) };
-  },
-  // Math: multiplication
-  () => {
-    const a = randomInt(2, 9);
-    const b = randomInt(2, 9);
-    return { text: `${a} \u00d7 ${b} = ?`, answer: String(a * b) };
-  },
-  // Letter counting (rendered as SVG image)
-  () => {
-    const pairs: Array<{ word: string; letter: string }> = [
-      { word: 'programming', letter: 'g' },
-      { word: 'mississippi', letter: 's' },
-      { word: 'mississippi', letter: 'i' },
-      { word: 'accessibility', letter: 'i' },
-      { word: 'communication', letter: 'm' },
-      { word: 'infrastructure', letter: 'r' },
-      { word: 'authentication', letter: 't' },
-      { word: 'programming', letter: 'm' },
-      { word: 'parallel', letter: 'l' },
-      { word: 'occurrence', letter: 'c' },
-    ];
-    const pair = pairs[randomInt(0, pairs.length - 1)];
-    const count = (pair.word.match(new RegExp(pair.letter, 'g')) || []).length;
-    return {
-      text: `"${pair.letter}" in "${pair.word}" = ?`,
-      answer: String(count),
-      wide: true,
-    };
-  },
-  // Word length (rendered as SVG image)
-  () => {
-    const words = ['infrastructure', 'programming', 'development', 'authentication', 'collaboration', 'architecture', 'environment', 'performance'];
-    const word = words[randomInt(0, words.length - 1)];
-    return {
-      text: `letters in "${word}" = ?`,
-      answer: String(word.length),
-      wide: true,
-    };
-  },
+const letterCountPairs: LetterCountPair[] = [
+  { word: 'programming', letter: 'g' },
+  { word: 'programming', letter: 'm' },
+  { word: 'programming', letter: 'r' },
+  { word: 'mississippi', letter: 's' },
+  { word: 'mississippi', letter: 'i' },
+  { word: 'mississippi', letter: 'p' },
+  { word: 'accessibility', letter: 'i' },
+  { word: 'accessibility', letter: 'c' },
+  { word: 'communication', letter: 'm' },
+  { word: 'communication', letter: 'c' },
+  { word: 'infrastructure', letter: 'r' },
+  { word: 'infrastructure', letter: 't' },
+  { word: 'authentication', letter: 't' },
+  { word: 'authentication', letter: 'a' },
+  { word: 'parallel', letter: 'l' },
+  { word: 'parallel', letter: 'a' },
+  { word: 'occurrence', letter: 'c' },
+  { word: 'occurrence', letter: 'r' },
+  { word: 'committee', letter: 't' },
+  { word: 'committee', letter: 'e' },
+  { word: 'collaboration', letter: 'o' },
+  { word: 'collaboration', letter: 'l' },
+  { word: 'application', letter: 'p' },
+  { word: 'application', letter: 'a' },
+  { word: 'environment', letter: 'n' },
+  { word: 'environment', letter: 'e' },
+  { word: 'performance', letter: 'e' },
+  { word: 'performance', letter: 'r' },
+  { word: 'development', letter: 'e' },
+  { word: 'development', letter: 'l' },
 ];
 
 export function generateHumanCaptcha(): HumanCaptcha {
-  const generator = humanChallenges[randomInt(0, humanChallenges.length - 1)];
-  const { text, answer, wide } = generator();
+  const pair = letterCountPairs[randomInt(0, letterCountPairs.length - 1)];
+  const count = (pair.word.match(new RegExp(pair.letter, 'g')) || []).length;
 
-  const svg = wide
-    ? renderTextAsSvg(text, { width: 320, charSpacing: 14, fontSize: 22 })
-    : renderTextAsSvg(text);
+  // Display text: "g" in programming = ?
+  const text = `"${pair.letter}" in ${pair.word} = ?`;
+  const svg = renderMaskedSvg(text);
 
   return {
     token: nanoid(32),
-    answer,
+    answer: String(count),
     svg,
   };
 }
@@ -288,26 +676,10 @@ const agentChallenges: Array<() => { challenge: string; answer: string }> = [
   // Complex sequence with twist
   () => {
     const puzzles = [
-      {
-        // Triangular numbers
-        challenge: 'What comes next? 1, 3, 6, 10, 15, 21, ___. Answer with just the number.',
-        answer: '28',
-      },
-      {
-        // Catalan-like
-        challenge: 'What comes next? 1, 2, 5, 14, 42, ___. Answer with just the number.',
-        answer: '132',
-      },
-      {
-        // Powers of 3
-        challenge: 'What comes next? 3, 9, 27, 81, 243, ___. Answer with just the number.',
-        answer: '729',
-      },
-      {
-        // Factorials
-        challenge: 'What comes next? 1, 2, 6, 24, 120, ___. Answer with just the number.',
-        answer: '720',
-      },
+      { challenge: 'What comes next? 1, 3, 6, 10, 15, 21, ___. Answer with just the number.', answer: '28' },
+      { challenge: 'What comes next? 1, 2, 5, 14, 42, ___. Answer with just the number.', answer: '132' },
+      { challenge: 'What comes next? 3, 9, 27, 81, 243, ___. Answer with just the number.', answer: '729' },
+      { challenge: 'What comes next? 1, 2, 6, 24, 120, ___. Answer with just the number.', answer: '720' },
     ];
     return puzzles[randomInt(0, puzzles.length - 1)];
   },
