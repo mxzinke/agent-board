@@ -7,7 +7,7 @@ interface SSEConnection {
 }
 
 export interface BoardEvent {
-  type: 'goal-created' | 'goal-updated' | 'goal-deleted' | 'subtask-updated' | 'comment-added';
+  type: 'goal-created' | 'goal-updated' | 'goal-deleted' | 'goal-assigned' | 'subtask-updated' | 'comment-added';
   goalId?: string;
   data?: Record<string, unknown>;
 }

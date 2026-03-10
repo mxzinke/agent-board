@@ -219,6 +219,28 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
         ))}
       </div>
 
+      {/* Assignee */}
+      <div className="mb-6">
+        <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2">Assignee</h3>
+        <select
+          value={selectedGoal.assigneeId || ''}
+          onChange={async (e) => {
+            const assigneeId = e.target.value || null;
+            await api.updateGoal(currentBoard.id, selectedGoal.id, { assigneeId });
+            await refresh();
+            await fetchGoals(currentBoard.id);
+          }}
+          className="w-full px-2 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
+        >
+          <option value="">Unassigned</option>
+          {currentBoard.members?.map((m: any) => (
+            <option key={m.userId} value={m.userId}>
+              {m.displayName || m.username}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* Subtasks */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">

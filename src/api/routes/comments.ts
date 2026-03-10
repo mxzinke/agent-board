@@ -10,6 +10,7 @@ import { rateLimitMiddleware } from '../middleware/rateLimit';
 import { notFound, forbidden } from '../lib/errors';
 import { config } from '../../config';
 import { broadcastBoardEvent } from '../lib/broadcast';
+import { deliverWebhooks } from '../lib/webhookDelivery';
 
 const commentsRouter = new Hono();
 commentsRouter.use('*', authMiddleware);
@@ -89,6 +90,7 @@ commentsRouter.post('/goals/:goalId/comments',
     }).from(users).where(eq(users.id, sub)).limit(1);
 
     broadcastBoardEvent(goal.boardId, { type: 'comment-added', goalId });
+    deliverWebhooks(goal.boardId, { type: 'comment-added', goalId }, sub);
 
     return c.json({
       ...comment,

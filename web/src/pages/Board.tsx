@@ -265,6 +265,7 @@ export function Board({ navigate }: BoardProps) {
             status={key}
             label={label}
             goals={goals.filter((g) => g.status === key)}
+            members={currentBoard?.members}
             onOpenGoal={handleOpenGoal}
             onMoveGoal={handleMoveGoal}
             showNewGoal={showNewGoal === key}

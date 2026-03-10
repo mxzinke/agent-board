@@ -5,6 +5,7 @@ interface KanbanColumnProps {
   status: string;
   label: string;
   goals: any[];
+  members?: any[];
   onOpenGoal: (goalId: string) => void;
   onMoveGoal: (goalId: string, newStatus: string) => void;
   showNewGoal: boolean;
@@ -41,6 +42,7 @@ export function KanbanColumn({
   status,
   label,
   goals,
+  members,
   onOpenGoal,
   onMoveGoal,
   showNewGoal,
@@ -111,7 +113,23 @@ export function KanbanColumn({
             className="border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 p-3 cursor-grab active:cursor-grabbing hover:border-zinc-400 dark:hover:border-zinc-500 group"
             onClick={() => onOpenGoal(goal.id)}
           >
-            <p className="text-sm text-zinc-900 dark:text-zinc-100 font-medium leading-snug">{goal.title}</p>
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-sm text-zinc-900 dark:text-zinc-100 font-medium leading-snug">{goal.title}</p>
+              {goal.assigneeId && (() => {
+                const member = members?.find((m: any) => m.userId === goal.assigneeId);
+                if (!member) return null;
+                const name = member.displayName || member.username || '';
+                const initial = name.charAt(0).toUpperCase();
+                return (
+                  <span
+                    className="flex-shrink-0 w-5 h-5 bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 text-xs font-medium flex items-center justify-center rounded-full"
+                    title={name}
+                  >
+                    {initial}
+                  </span>
+                );
+              })()}
+            </div>
             {goal.description && (
               <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 line-clamp-2">{goal.description}</p>
             )}

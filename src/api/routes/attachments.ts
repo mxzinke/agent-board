@@ -10,6 +10,7 @@ import { getStorage } from '../lib/storage';
 import { config } from '../../config';
 import { nanoid } from 'nanoid';
 import { broadcastBoardEvent } from '../lib/broadcast';
+import { deliverWebhooks } from '../lib/webhookDelivery';
 
 const attachmentsRouter = new Hono();
 attachmentsRouter.use('*', authMiddleware, suspensionMiddleware, rateLimitMiddleware);
@@ -114,6 +115,7 @@ attachmentsRouter.post('/goals/:goalId/attachments', async (c) => {
   });
 
   broadcastBoardEvent(goal.boardId, { type: 'goal-updated', goalId });
+  deliverWebhooks(goal.boardId, { type: 'attachment-uploaded', goalId }, sub);
 
   return c.json(attachment, 201);
 });
@@ -181,6 +183,7 @@ attachmentsRouter.delete('/attachments/:id', async (c) => {
   await db.delete(attachments).where(eq(attachments.id, id));
 
   broadcastBoardEvent(goal.boardId, { type: 'goal-updated', goalId: attachment.goalId });
+  deliverWebhooks(goal.boardId, { type: 'attachment-deleted', goalId: attachment.goalId }, sub);
 
   return c.json({ ok: true });
 });

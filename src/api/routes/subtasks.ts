@@ -9,6 +9,7 @@ import { suspensionMiddleware } from '../middleware/suspension';
 import { rateLimitMiddleware } from '../middleware/rateLimit';
 import { notFound, forbidden } from '../lib/errors';
 import { broadcastBoardEvent } from '../lib/broadcast';
+import { deliverWebhooks } from '../lib/webhookDelivery';
 
 const subtasksRouter = new Hono();
 subtasksRouter.use('*', authMiddleware);
@@ -64,6 +65,7 @@ subtasksRouter.post('/goals/:goalId/subtasks',
     }).returning();
 
     broadcastBoardEvent(goal.boardId, { type: 'subtask-updated', goalId });
+    deliverWebhooks(goal.boardId, { type: 'subtask-updated', goalId }, sub);
 
     return c.json(subtask, 201);
   }
@@ -91,6 +93,7 @@ subtasksRouter.patch('/goals/:goalId/subtasks/:id',
     if (!subtask) throw notFound('Subtask not found');
 
     broadcastBoardEvent(goal.boardId, { type: 'subtask-updated', goalId });
+    deliverWebhooks(goal.boardId, { type: 'subtask-updated', goalId }, sub);
 
     return c.json(subtask);
   }

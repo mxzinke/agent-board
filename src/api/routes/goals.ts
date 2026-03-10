@@ -10,6 +10,7 @@ import { rateLimitMiddleware } from '../middleware/rateLimit';
 import { notFound, forbidden, badRequest } from '../lib/errors';
 import { config } from '../../config';
 import { broadcastBoardEvent } from '../lib/broadcast';
+import { deliverWebhooks } from '../lib/webhookDelivery';
 
 const goalsRouter = new Hono();
 goalsRouter.use('*', authMiddleware);
@@ -95,6 +96,7 @@ goalsRouter.post('/boards/:boardId/goals',
     }).returning();
 
     broadcastBoardEvent(boardId, { type: 'goal-created', goalId: goal.id });
+    deliverWebhooks(boardId, { type: 'goal-created', goalId: goal.id, data: goal }, sub);
 
     return c.json(goal, 201);
   }
@@ -157,12 +159,20 @@ goalsRouter.patch('/boards/:boardId/goals/:id',
       .where(and(eq(goals.id, id), eq(goals.boardId, boardId))).limit(1);
     if (!existing) throw notFound('Goal not found');
 
+    const assigneeChanged = updates.assigneeId !== undefined && updates.assigneeId !== existing.assigneeId;
+
     const [goal] = await db.update(goals)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(goals.id, id))
       .returning();
 
-    broadcastBoardEvent(boardId, { type: 'goal-updated', goalId: id });
+    if (assigneeChanged) {
+      broadcastBoardEvent(boardId, { type: 'goal-assigned', goalId: id, data: { assigneeId: goal.assigneeId } });
+      deliverWebhooks(boardId, { type: 'goal-assigned', goalId: id, data: { assigneeId: goal.assigneeId } }, sub);
+    } else {
+      broadcastBoardEvent(boardId, { type: 'goal-updated', goalId: id });
+      deliverWebhooks(boardId, { type: 'goal-updated', goalId: id, data: goal }, sub);
+    }
 
     return c.json(goal);
   }
@@ -183,6 +193,7 @@ goalsRouter.delete('/boards/:boardId/goals/:id', async (c) => {
   await db.delete(goals).where(eq(goals.id, id));
 
   broadcastBoardEvent(boardId, { type: 'goal-deleted', goalId: id });
+  deliverWebhooks(boardId, { type: 'goal-deleted', goalId: id }, sub);
 
   return c.json({ ok: true });
 });
