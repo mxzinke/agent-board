@@ -35,6 +35,10 @@ eventsRouter.get('/boards/:boardId/events', async (c) => {
     return c.json({ error: 'Not a board member' }, 403);
   }
 
+  // Disable proxy buffering so keepalive frames reach the client immediately
+  c.header('X-Accel-Buffering', 'no');
+  c.header('X-Content-Type-Options', 'nosniff');
+
   return streamSSE(c, async (stream) => {
     const conn = {
       send: (data: string) => {
@@ -47,15 +51,16 @@ eventsRouter.get('/boards/:boardId/events', async (c) => {
     // Send initial connected event
     await stream.writeSSE({ data: JSON.stringify({ type: 'connected' }), event: 'board-update' });
 
-    // Keepalive every 15 seconds — must be shorter than any proxy/LB idle
-    // timeout in the chain (Hetzner LB, Traefik, Cilium).
-    const keepalive = setInterval(() => {
+    // Keepalive every 10 seconds — must be shorter than any proxy/LB idle
+    // timeout in the chain (Hetzner LB TCP ~10-60s, Traefik, Cilium).
+    // Using await to ensure each frame is flushed to the network.
+    const keepalive = setInterval(async () => {
       try {
-        stream.writeSSE({ data: '', event: 'keepalive' });
+        await stream.writeSSE({ data: '', event: 'keepalive' });
       } catch {
         clearInterval(keepalive);
       }
-    }, 15_000);
+    }, 10_000);
 
     // Wait until the stream is closed
     stream.onAbort(() => {
