@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db } from '../../db';
 import { users, apiKeys, passkeys, challenges } from '../../db/schema';
-import { eq, and, lt, sql } from 'drizzle-orm';
+import { eq, and, lt, gt, sql } from 'drizzle-orm';
 import { hashPassword, verifyPassword } from '../lib/password';
 import { signToken } from '../lib/jwt';
 import { authMiddleware } from '../middleware/auth';
@@ -36,7 +36,7 @@ async function getAndDeleteChallenge(key: string): Promise<string | null> {
   // Atomic delete-and-return to prevent race conditions (replay attacks)
   const cutoff = new Date(Date.now() - 5 * 60 * 1000);
   const result = await db.delete(challenges)
-    .where(and(eq(challenges.key, key), lt(cutoff, challenges.createdAt)))
+    .where(and(eq(challenges.key, key), gt(challenges.createdAt, cutoff)))
     .returning();
   if (result.length === 0) return null;
   return result[0].challenge;
