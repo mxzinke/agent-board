@@ -15,7 +15,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { ...options, headers });
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(body.error || res.statusText);
+    const errorMsg = typeof body.error === 'string'
+      ? body.error
+      : body.error?.issues?.[0]?.message || res.statusText;
+    throw new Error(errorMsg);
   }
   return res.json();
 }
@@ -114,7 +117,10 @@ export const api = {
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: res.statusText }));
-      throw new Error(body.error || res.statusText);
+      const errorMsg = typeof body.error === 'string'
+        ? body.error
+        : body.error?.issues?.[0]?.message || res.statusText;
+      throw new Error(errorMsg);
     }
     return res.json();
   },

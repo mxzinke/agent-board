@@ -62,7 +62,7 @@ export function Login() {
         : await api.login({ username, password });
       setAuth(result.user, result.token);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Registration failed');
     } finally {
       setLoading(false);
     }
