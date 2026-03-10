@@ -72,13 +72,10 @@ eventsRouter.get('/boards/:boardId/events', async (c) => {
       // Keepalive every 10s — controller.enqueue() pushes data directly
       // into the response stream without going through a TransformStream,
       // so each frame is flushed immediately by Bun's HTTP server.
-      console.log(`[SSE] Connection established for board ${boardId}, starting keepalive timer`);
       keepaliveTimer = setInterval(() => {
-        console.log(`[SSE] Sending keepalive for board ${boardId}`);
         try {
           send(sseFrame('keepalive', 'ping'));
-        } catch (e) {
-          console.error(`[SSE] Keepalive send failed:`, e);
+        } catch {
           if (keepaliveTimer) clearInterval(keepaliveTimer);
         }
       }, KEEPALIVE_INTERVAL_MS);
