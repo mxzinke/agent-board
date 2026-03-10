@@ -3,6 +3,7 @@ import { useStore } from '../store';
 import { api } from '../api';
 import { KanbanColumn } from '../components/KanbanColumn';
 import { InviteModal } from '../components/InviteModal';
+import { CreateGoalModal } from '../components/CreateGoalModal';
 import { Crown } from 'lucide-react';
 
 const STATUSES = [
@@ -21,8 +22,7 @@ export function Board({ navigate }: BoardProps) {
   const { currentBoard, setCurrentBoard, goals, fetchGoals, setSelectedGoal, user, fetchBoards } = useStore();
   const [loading, setLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
-  const [showNewGoal, setShowNewGoal] = useState<string | null>(null);
-  const [newGoalTitle, setNewGoalTitle] = useState('');
+  const [createGoalStatus, setCreateGoalStatus] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
@@ -94,11 +94,20 @@ export function Board({ navigate }: BoardProps) {
     }
   }, [currentBoard?.id]);
 
-  const handleCreateGoal = async (status: string) => {
-    if (!newGoalTitle.trim() || !currentBoard) return;
-    await api.createGoal(currentBoard.id, { title: newGoalTitle, status });
-    setNewGoalTitle('');
-    setShowNewGoal(null);
+  const handleCreateGoal = async (status: string, data: { title: string; description: string; subtasks: string[] }) => {
+    if (!data.title.trim() || !currentBoard) return;
+    const goal = await api.createGoal(currentBoard.id, {
+      title: data.title,
+      description: data.description || undefined,
+      status,
+    });
+    // Create subtasks if any
+    for (const subtaskTitle of data.subtasks) {
+      if (subtaskTitle.trim()) {
+        await api.createSubtask(goal.id, subtaskTitle.trim());
+      }
+    }
+    setCreateGoalStatus(null);
     await fetchGoals(currentBoard.id);
   };
 
@@ -268,15 +277,19 @@ export function Board({ navigate }: BoardProps) {
             members={currentBoard?.members}
             onOpenGoal={handleOpenGoal}
             onMoveGoal={handleMoveGoal}
-            showNewGoal={showNewGoal === key}
-            onShowNewGoal={() => { setShowNewGoal(key); setNewGoalTitle(''); }}
-            newGoalTitle={newGoalTitle}
-            onNewGoalTitleChange={setNewGoalTitle}
-            onCreateGoal={() => handleCreateGoal(key)}
-            onCancelNewGoal={() => setShowNewGoal(null)}
+            onShowNewGoal={() => setCreateGoalStatus(key)}
           />
         ))}
       </div>
+
+      {createGoalStatus && (
+        <CreateGoalModal
+          status={createGoalStatus}
+          statusLabel={STATUSES.find(s => s.key === createGoalStatus)?.label || createGoalStatus}
+          onClose={() => setCreateGoalStatus(null)}
+          onCreate={(data) => handleCreateGoal(createGoalStatus, data)}
+        />
+      )}
 
       {showInvite && (
         <InviteModal boardId={currentBoard.id} onClose={() => setShowInvite(false)} />

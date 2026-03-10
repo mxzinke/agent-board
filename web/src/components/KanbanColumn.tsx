@@ -8,12 +8,7 @@ interface KanbanColumnProps {
   members?: any[];
   onOpenGoal: (goalId: string) => void;
   onMoveGoal: (goalId: string, newStatus: string) => void;
-  showNewGoal: boolean;
   onShowNewGoal: () => void;
-  newGoalTitle: string;
-  onNewGoalTitleChange: (title: string) => void;
-  onCreateGoal: () => void;
-  onCancelNewGoal: () => void;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -45,12 +40,7 @@ export function KanbanColumn({
   members,
   onOpenGoal,
   onMoveGoal,
-  showNewGoal,
   onShowNewGoal,
-  newGoalTitle,
-  onNewGoalTitleChange,
-  onCreateGoal,
-  onCancelNewGoal,
 }: KanbanColumnProps) {
   const [dragOver, setDragOver] = useState(false);
 
@@ -154,27 +144,6 @@ export function KanbanColumn({
             </div>
           </div>
         ))}
-
-        {showNewGoal && (
-          <div className="border border-zinc-300 dark:border-zinc-600 p-2">
-            <input
-              type="text"
-              placeholder="Goal title..."
-              value={newGoalTitle}
-              onChange={(e) => onNewGoalTitleChange(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') onCreateGoal();
-                if (e.key === 'Escape') onCancelNewGoal();
-              }}
-              className="w-full px-2 py-1 text-sm border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
-              autoFocus
-            />
-            <div className="flex gap-1 mt-1">
-              <button onClick={onCreateGoal} className="text-xs px-2 py-1 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950">Add</button>
-              <button onClick={onCancelNewGoal} className="text-xs px-2 py-1 text-zinc-400 dark:text-zinc-500">Cancel</button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
