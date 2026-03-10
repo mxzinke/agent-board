@@ -10,6 +10,13 @@ import { authMiddleware } from '../middleware/auth';
 import { badRequest, unauthorized } from '../lib/errors';
 import { nanoid } from 'nanoid';
 import { generateHumanCaptcha, generateAgentCaptcha, validateCaptchaAnswer } from '../lib/captcha';
+
+// Password must be 10+ chars with uppercase, lowercase, number, and special character
+const passwordSchema = z.string().min(10, 'Password must be at least 10 characters').max(256)
+  .refine(p => /[A-Z]/.test(p), 'Password must contain at least one uppercase letter')
+  .refine(p => /[a-z]/.test(p), 'Password must contain at least one lowercase letter')
+  .refine(p => /[0-9]/.test(p), 'Password must contain at least one number')
+  .refine(p => /[^A-Za-z0-9]/.test(p), 'Password must contain at least one special character');
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -102,7 +109,7 @@ auth.post('/captcha',
 auth.post('/register',
   zValidator('json', z.object({
     username: z.string().min(2).max(64).regex(/^[a-zA-Z0-9_-]+$/),
-    password: z.string().min(6).max(256),
+    password: passwordSchema,
     displayName: z.string().max(128).optional(),
     isAgent: z.boolean().optional(),
     captchaToken: z.string().min(1),
@@ -311,7 +318,7 @@ auth.patch('/me', authMiddleware,
 auth.post('/change-password', authMiddleware,
   zValidator('json', z.object({
     currentPassword: z.string(),
-    newPassword: z.string().min(6).max(256),
+    newPassword: passwordSchema,
   })),
   async (c) => {
     const { sub } = c.get('user');

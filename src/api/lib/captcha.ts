@@ -484,36 +484,125 @@ interface LetterCountPair {
 }
 
 const letterCountPairs: LetterCountPair[] = [
+  // programming
   { word: 'programming', letter: 'g' },
   { word: 'programming', letter: 'm' },
   { word: 'programming', letter: 'r' },
+  // mississippi
   { word: 'mississippi', letter: 's' },
   { word: 'mississippi', letter: 'i' },
   { word: 'mississippi', letter: 'p' },
+  // accessibility
   { word: 'accessibility', letter: 'i' },
   { word: 'accessibility', letter: 'c' },
+  { word: 'accessibility', letter: 's' },
+  // communication
   { word: 'communication', letter: 'm' },
   { word: 'communication', letter: 'c' },
+  { word: 'communication', letter: 'n' },
+  // infrastructure
   { word: 'infrastructure', letter: 'r' },
   { word: 'infrastructure', letter: 't' },
+  { word: 'infrastructure', letter: 'u' },
+  // authentication
   { word: 'authentication', letter: 't' },
   { word: 'authentication', letter: 'a' },
+  { word: 'authentication', letter: 'i' },
+  // parallel
   { word: 'parallel', letter: 'l' },
   { word: 'parallel', letter: 'a' },
+  // occurrence
   { word: 'occurrence', letter: 'c' },
   { word: 'occurrence', letter: 'r' },
+  // committee
   { word: 'committee', letter: 't' },
   { word: 'committee', letter: 'e' },
+  { word: 'committee', letter: 'm' },
+  // collaboration
   { word: 'collaboration', letter: 'o' },
   { word: 'collaboration', letter: 'l' },
+  { word: 'collaboration', letter: 'a' },
+  // application
   { word: 'application', letter: 'p' },
   { word: 'application', letter: 'a' },
+  // environment
   { word: 'environment', letter: 'n' },
   { word: 'environment', letter: 'e' },
+  // performance
   { word: 'performance', letter: 'e' },
   { word: 'performance', letter: 'r' },
+  // development
   { word: 'development', letter: 'e' },
   { word: 'development', letter: 'l' },
+  // strawberry
+  { word: 'strawberry', letter: 'r' },
+  // banana
+  { word: 'banana', letter: 'a' },
+  { word: 'banana', letter: 'n' },
+  // bookkeeper
+  { word: 'bookkeeper', letter: 'o' },
+  { word: 'bookkeeper', letter: 'k' },
+  { word: 'bookkeeper', letter: 'e' },
+  // abracadabra
+  { word: 'abracadabra', letter: 'a' },
+  { word: 'abracadabra', letter: 'b' },
+  { word: 'abracadabra', letter: 'r' },
+  // successfully
+  { word: 'successfully', letter: 's' },
+  { word: 'successfully', letter: 'c' },
+  { word: 'successfully', letter: 'l' },
+  // disappearance
+  { word: 'disappearance', letter: 'a' },
+  { word: 'disappearance', letter: 'p' },
+  { word: 'disappearance', letter: 'e' },
+  // celebration
+  { word: 'celebration', letter: 'e' },
+  { word: 'celebration', letter: 'l' },
+  // intelligence
+  { word: 'intelligence', letter: 'l' },
+  { word: 'intelligence', letter: 'e' },
+  { word: 'intelligence', letter: 'i' },
+  // exaggeration
+  { word: 'exaggeration', letter: 'a' },
+  { word: 'exaggeration', letter: 'g' },
+  { word: 'exaggeration', letter: 'e' },
+  // professional
+  { word: 'professional', letter: 'o' },
+  { word: 'professional', letter: 's' },
+  // entrepreneur
+  { word: 'entrepreneur', letter: 'r' },
+  { word: 'entrepreneur', letter: 'e' },
+  { word: 'entrepreneur', letter: 'n' },
+  // recommendation
+  { word: 'recommendation', letter: 'e' },
+  { word: 'recommendation', letter: 'o' },
+  { word: 'recommendation', letter: 'n' },
+  // effectiveness
+  { word: 'effectiveness', letter: 'e' },
+  { word: 'effectiveness', letter: 'f' },
+  { word: 'effectiveness', letter: 's' },
+  // experience
+  { word: 'experience', letter: 'e' },
+  // assessment
+  { word: 'assessment', letter: 's' },
+  { word: 'assessment', letter: 'e' },
+  // possibility
+  { word: 'possibility', letter: 's' },
+  { word: 'possibility', letter: 'i' },
+  // opportunity
+  { word: 'opportunity', letter: 'p' },
+  { word: 'opportunity', letter: 'o' },
+  { word: 'opportunity', letter: 't' },
+  // responsibility
+  { word: 'responsibility', letter: 'i' },
+  { word: 'responsibility', letter: 's' },
+  // hippopotamus
+  { word: 'hippopotamus', letter: 'p' },
+  { word: 'hippopotamus', letter: 'o' },
+  // Constantinople
+  { word: 'constantinople', letter: 'n' },
+  { word: 'constantinople', letter: 'o' },
+  { word: 'constantinople', letter: 't' },
 ];
 
 export function generateHumanCaptcha(): HumanCaptcha {

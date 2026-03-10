@@ -96,6 +96,17 @@ export function Login() {
     setLoading(true);
     try {
       if (isRegister) {
+        // Client-side password validation
+        if (password.length < 10) {
+          setError('Password must be at least 10 characters.');
+          setLoading(false);
+          return;
+        }
+        if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+          setError('Password must contain uppercase, lowercase, number, and special character.');
+          setLoading(false);
+          return;
+        }
         if (!captchaToken || !captchaAnswer.trim()) {
           setError('Please enter your answer to the puzzle above.');
           setLoading(false);
@@ -219,7 +230,11 @@ export function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 className={inputClass}
                 required
+                minLength={isRegister ? 10 : undefined}
               />
+              {isRegister && (
+                <p className="text-xs text-zinc-400 -mt-1">Min. 10 characters, with uppercase, lowercase, number & special character</p>
+              )}
               {isRegister && (
                 <input
                   type="text"
