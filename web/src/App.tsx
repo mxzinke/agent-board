@@ -16,6 +16,10 @@ export function App() {
   const [ready, setReady] = useState(false);
   const { path, navigate } = useRouter();
 
+  // SSE at app level — works on both Board and GoalDetail views
+  // Must be before any early returns (React hooks rule)
+  useSSE(currentBoard?.id ?? null);
+
   useEffect(() => {
     checkAuth().then(async () => {
       const token = localStorage.getItem('agent-board-token');
@@ -56,9 +60,6 @@ export function App() {
     if (!user) return <Login />;
     return <JoinBoard navigate={navigate} />;
   }
-
-  // SSE at app level — works on both Board and GoalDetail views
-  useSSE(currentBoard?.id ?? null);
 
   if (!user) return <Login />;
 
