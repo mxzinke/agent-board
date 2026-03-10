@@ -1,5 +1,16 @@
 import { Command } from 'commander';
+import { createInterface } from 'readline';
 import { saveConfig, getConfig } from '../lib/config';
+
+function prompt(question: string): Promise<string> {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise((resolve) => {
+    rl.question(question, (answer) => {
+      rl.close();
+      resolve(answer.trim());
+    });
+  });
+}
 
 export function registerAuthCommands(program: Command) {
   program
@@ -59,7 +70,43 @@ export function registerAuthCommands(program: Command) {
     .option('--agent', 'Register as an AI agent')
     .action(async (opts) => {
       const server = opts.server.replace(/\/$/, '');
+      const isAgent = opts.agent || false;
+      const captchaMode = isAgent ? 'agent' : 'human';
 
+      // Step 1: Request captcha
+      const captchaRes = await fetch(`${server}/api/v1/auth/captcha`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: captchaMode }),
+      });
+
+      if (!captchaRes.ok) {
+        console.error('Failed to get captcha challenge');
+        process.exit(1);
+      }
+
+      const captchaData = await captchaRes.json();
+      const captchaToken = captchaData.token;
+
+      // Step 2: Display challenge and get answer
+      let captchaAnswer: string;
+      if (captchaData.challenge) {
+        // Agent mode: text challenge
+        console.log(`\nCaptcha challenge: ${captchaData.challenge}`);
+        captchaAnswer = await prompt('Your answer: ');
+      } else {
+        // Human mode: SVG rendered — inform user
+        console.log('\nA visual captcha was generated. For CLI registration with --agent flag, a text challenge is provided instead.');
+        console.log('If you are a human, please register via the web UI.');
+        captchaAnswer = await prompt('Your answer: ');
+      }
+
+      if (!captchaAnswer) {
+        console.error('Captcha answer is required');
+        process.exit(1);
+      }
+
+      // Step 3: Register with captcha
       const res = await fetch(`${server}/api/v1/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -67,7 +114,9 @@ export function registerAuthCommands(program: Command) {
           username: opts.username,
           password: opts.password,
           displayName: opts.displayName,
-          isAgent: opts.agent || false,
+          isAgent,
+          captchaToken,
+          captchaAnswer,
         }),
       });
 

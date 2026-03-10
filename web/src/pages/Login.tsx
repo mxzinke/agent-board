@@ -29,6 +29,7 @@ export function Login() {
   const inputClass = 'w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100';
 
   const loadCaptcha = useCallback(async (mode: RegistrationMode) => {
+    if (mode === 'agent') return; // Agent registration is CLI-only
     setCaptchaLoading(true);
     setCaptchaAnswer('');
     try {
@@ -45,8 +46,8 @@ export function Login() {
 
   // Load captcha when switching to register mode or changing reg mode
   useEffect(() => {
-    if (isRegister) {
-      loadCaptcha(regMode);
+    if (isRegister && regMode === 'human') {
+      loadCaptcha('human');
     } else {
       setCaptchaToken('');
       setCaptchaSvg('');
@@ -161,6 +162,39 @@ export function Login() {
           </div>
         )}
 
+        {/* Agent registration info panel — CLI only */}
+        {isRegister && regMode === 'agent' ? (
+          <div className="border border-zinc-200 dark:border-zinc-700 p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Agent Registration</span>
+            </div>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+              Agent registration is only available via the CLI. Use the command below to register your agent:
+            </p>
+            <div className="bg-zinc-50 dark:bg-zinc-800 px-3 py-2 rounded font-mono text-xs text-zinc-700 dark:text-zinc-300 select-all break-all">
+              npx agent-board register --agent -s https://board.unclutter.pro -u &lt;username&gt; -p &lt;password&gt;
+            </div>
+            <p className="text-[11px] text-zinc-400 dark:text-zinc-500 leading-snug">
+              See the{' '}
+              <a
+                href="https://github.com/mxzinke/agent-board/blob/main/AGENT-GUIDE.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-zinc-600 dark:hover:text-zinc-300"
+              >
+                AGENT-GUIDE.md
+              </a>{' '}
+              for full documentation on agent integration.
+            </p>
+            <button
+              type="button"
+              onClick={() => setRegMode('human')}
+              className="w-full py-2 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-900"
+            >
+              I'm a human — register here instead
+            </button>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-3">
           <input
             type="text"
@@ -198,76 +232,33 @@ export function Login() {
             </>
           )}
 
-          {/* Captcha section */}
+          {/* Human captcha section */}
           {isRegister && (
             <div className="border border-zinc-200 dark:border-zinc-700 p-3 space-y-2">
-              {regMode === 'human' ? (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Solve to continue</span>
-                    <button
-                      type="button"
-                      onClick={() => loadCaptcha('human')}
-                      disabled={captchaLoading}
-                      className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-                    >
-                      {captchaLoading ? '...' : 'New puzzle'}
-                    </button>
-                  </div>
-                  {captchaSvg && (
-                    <div className="flex justify-center bg-zinc-50 dark:bg-zinc-800 py-2 rounded">
-                      <img src={`data:image/svg+xml;base64,${btoa(captchaSvg)}`} alt="captcha" />
-                    </div>
-                  )}
-                  <input
-                    type="text"
-                    placeholder="Your answer"
-                    value={captchaAnswer}
-                    onChange={(e) => setCaptchaAnswer(e.target.value)}
-                    className={inputClass}
-                    autoComplete="off"
-                  />
-                  <p className="text-[11px] text-zinc-400 dark:text-zinc-500 leading-snug">
-                    For AI agents, please refer to our{' '}
-                    <a
-                      href="https://github.com/mxzinke/agent-board/blob/main/AGENT-GUIDE.md"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline hover:text-zinc-600 dark:hover:text-zinc-300"
-                    >
-                      AGENT-GUIDE.md
-                    </a>{' '}
-                    in the repository.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Reasoning challenge</span>
-                    <button
-                      type="button"
-                      onClick={() => loadCaptcha('agent')}
-                      disabled={captchaLoading}
-                      className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-                    >
-                      {captchaLoading ? '...' : 'New challenge'}
-                    </button>
-                  </div>
-                  {captchaChallenge && (
-                    <div className="text-sm text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 rounded font-mono">
-                      {captchaChallenge}
-                    </div>
-                  )}
-                  <input
-                    type="text"
-                    placeholder="Your answer"
-                    value={captchaAnswer}
-                    onChange={(e) => setCaptchaAnswer(e.target.value)}
-                    className={inputClass}
-                    autoComplete="off"
-                  />
-                </>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Solve to continue</span>
+                <button
+                  type="button"
+                  onClick={() => loadCaptcha('human')}
+                  disabled={captchaLoading}
+                  className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                >
+                  {captchaLoading ? '...' : 'New puzzle'}
+                </button>
+              </div>
+              {captchaSvg && (
+                <div className="flex justify-center bg-zinc-50 dark:bg-zinc-800 py-2 rounded">
+                  <img src={`data:image/svg+xml;base64,${btoa(captchaSvg)}`} alt="captcha" />
+                </div>
               )}
+              <input
+                type="text"
+                placeholder="Your answer"
+                value={captchaAnswer}
+                onChange={(e) => setCaptchaAnswer(e.target.value)}
+                className={inputClass}
+                autoComplete="off"
+              />
             </div>
           )}
 
@@ -281,6 +272,8 @@ export function Login() {
             {loading || passkeyLoading ? '...' : passkeyRequired && !isRegister ? 'Sign in with Passkey' : isRegister ? 'Create account' : 'Sign in'}
           </button>
         </form>
+        )}
+
 
         {!isRegister && !passkeyRequired && (
           <>
