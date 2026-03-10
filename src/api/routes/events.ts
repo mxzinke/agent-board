@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { streamSSE } from 'hono/streaming';
 import { verifyToken } from '../lib/jwt';
 import { db } from '../../db';
 import { boardMembers } from '../../db/schema';
@@ -7,6 +6,13 @@ import { eq, and } from 'drizzle-orm';
 import { addConnection, removeConnection } from '../lib/broadcast';
 
 const eventsRouter = new Hono();
+
+const KEEPALIVE_INTERVAL_MS = 10_000;
+
+/** Format an SSE frame */
+function sseFrame(event: string, data: string): string {
+  return `event: ${event}\ndata: ${data}\n\n`;
+}
 
 // SSE endpoint — auth via query param since EventSource can't set headers
 eventsRouter.get('/boards/:boardId/events', async (c) => {
@@ -35,47 +41,75 @@ eventsRouter.get('/boards/:boardId/events', async (c) => {
     return c.json({ error: 'Not a board member' }, 403);
   }
 
-  // Disable proxy buffering so keepalive frames reach the client immediately
-  c.header('X-Accel-Buffering', 'no');
-  c.header('X-Content-Type-Options', 'nosniff');
+  // Use Bun's native ReadableStream with start() controller.
+  // Hono's streamSSE uses a TransformStream whose pull-based ReadableStream
+  // doesn't reliably flush subsequent writes in Bun — keepalive frames get
+  // buffered indefinitely. Using controller.enqueue() directly bypasses this.
+  const encoder = new TextEncoder();
+  let keepaliveTimer: ReturnType<typeof setInterval> | null = null;
 
-  return streamSSE(c, async (stream) => {
-    let aborted = false;
-
-    const conn = {
-      send: async (data: string) => {
+  const stream = new ReadableStream({
+    start(controller) {
+      const send = (text: string) => {
         try {
-          await stream.writeSSE({ data, event: 'board-update' });
+          controller.enqueue(encoder.encode(text));
         } catch {
-          // Connection dead — will be cleaned up
+          // Stream closed
         }
-      },
-    };
+      };
 
-    addConnection(boardId, conn);
+      const conn = {
+        send: (data: string) => {
+          send(sseFrame('board-update', data));
+        },
+      };
 
-    stream.onAbort(() => {
-      aborted = true;
-      removeConnection(boardId, conn);
-    });
+      addConnection(boardId, conn);
 
-    // Send initial connected event
-    await stream.writeSSE({ data: JSON.stringify({ type: 'connected' }), event: 'board-update' });
+      // Send initial connected event
+      send(sseFrame('board-update', JSON.stringify({ type: 'connected' })));
 
-    // Keepalive loop — uses stream.sleep() to stay within the callback's
-    // execution flow. This ensures writes trigger the TransformStream's
-    // pull mechanism in Bun, so frames actually reach the client.
-    // setInterval + await new Promise(() => {}) does NOT work because
-    // interval writes happen outside the pull chain and get buffered forever.
-    while (!aborted) {
-      await stream.sleep(10_000);
-      if (aborted) break;
-      try {
-        await stream.writeSSE({ data: 'ping', event: 'keepalive' });
-      } catch {
-        break;
+      // Keepalive every 10s — controller.enqueue() pushes data directly
+      // into the response stream without going through a TransformStream,
+      // so each frame is flushed immediately by Bun's HTTP server.
+      keepaliveTimer = setInterval(() => {
+        try {
+          send(sseFrame('keepalive', 'ping'));
+        } catch {
+          if (keepaliveTimer) clearInterval(keepaliveTimer);
+        }
+      }, KEEPALIVE_INTERVAL_MS);
+
+      // Cleanup when client disconnects
+      c.req.raw.signal.addEventListener('abort', () => {
+        if (keepaliveTimer) {
+          clearInterval(keepaliveTimer);
+          keepaliveTimer = null;
+        }
+        removeConnection(boardId, conn);
+        try {
+          controller.close();
+        } catch {
+          // Already closed
+        }
+      });
+    },
+    cancel() {
+      if (keepaliveTimer) {
+        clearInterval(keepaliveTimer);
+        keepaliveTimer = null;
       }
-    }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
+      'X-Content-Type-Options': 'nosniff',
+    },
   });
 });
 
