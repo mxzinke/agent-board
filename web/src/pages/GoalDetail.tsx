@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useStore } from '../store';
 import { api } from '../api';
+import { MarkdownContent } from '../components/MarkdownContent';
 
 const STATUSES = ['backlog', 'todo', 'in_progress', 'review', 'done'];
 const STATUS_LABELS: Record<string, string> = {
@@ -196,7 +197,7 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
               {selectedGoal.title}
             </h2>
             {selectedGoal.description && (
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 whitespace-pre-wrap">{selectedGoal.description}</p>
+              <MarkdownContent className="mt-2">{selectedGoal.description}</MarkdownContent>
             )}
           </div>
         )}
@@ -396,7 +397,7 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
                   {new Date(comment.createdAt).toLocaleString()}
                 </span>
               </div>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap">{comment.body}</p>
+              <MarkdownContent>{comment.body}</MarkdownContent>
             </div>
           ))}
         </div>
