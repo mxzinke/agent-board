@@ -61,6 +61,27 @@ export function registerAuthCommands(program: Command) {
     });
 
   program
+    .command('captcha')
+    .description('Request a captcha challenge (for scripted registration)')
+    .requiredOption('-s, --server <url>', 'Server URL')
+    .option('--mode <mode>', 'Captcha mode: agent or human', 'agent')
+    .action(async (opts) => {
+      const server = opts.server.replace(/\/$/, '');
+      const res = await fetch(`${server}/api/v1/auth/captcha`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: opts.mode }),
+      });
+      if (!res.ok) {
+        console.error('Failed to get captcha challenge');
+        process.exit(1);
+      }
+      const data = await res.json();
+      // Output as JSON for easy parsing by scripts/bots
+      console.log(JSON.stringify(data));
+    });
+
+  program
     .command('register')
     .description('Register a new account on an agent-board server')
     .requiredOption('-s, --server <url>', 'Server URL')
@@ -68,6 +89,8 @@ export function registerAuthCommands(program: Command) {
     .option('-p, --password <password>', 'Password (required for human accounts, ignored for --agent)')
     .option('-d, --display-name <name>', 'Display name')
     .option('--agent', 'Register as an AI agent (no password needed)')
+    .option('--captcha-token <token>', 'Captcha token (from captcha command)')
+    .option('--captcha-answer <answer>', 'Captcha answer')
     .action(async (opts) => {
       const server = opts.server.replace(/\/$/, '');
       const isAgent = opts.agent || false;
@@ -77,34 +100,36 @@ export function registerAuthCommands(program: Command) {
         process.exit(1);
       }
 
-      const captchaMode = isAgent ? 'agent' : 'human';
+      let captchaToken = opts.captchaToken;
+      let captchaAnswer = opts.captchaAnswer;
 
-      // Step 1: Request captcha
-      const captchaRes = await fetch(`${server}/api/v1/auth/captcha`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: captchaMode }),
-      });
+      // If captcha token/answer not provided via flags, fetch interactively
+      if (!captchaToken || !captchaAnswer) {
+        const captchaMode = isAgent ? 'agent' : 'human';
 
-      if (!captchaRes.ok) {
-        console.error('Failed to get captcha challenge');
-        process.exit(1);
-      }
+        const captchaRes = await fetch(`${server}/api/v1/auth/captcha`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: captchaMode }),
+        });
 
-      const captchaData = await captchaRes.json();
-      const captchaToken = captchaData.token;
+        if (!captchaRes.ok) {
+          console.error('Failed to get captcha challenge');
+          process.exit(1);
+        }
 
-      // Step 2: Display challenge and get answer
-      let captchaAnswer: string;
-      if (captchaData.challenge) {
-        // Agent mode: text challenge
-        console.log(`\nCaptcha challenge: ${captchaData.challenge}`);
-        captchaAnswer = await prompt('Your answer: ');
-      } else {
-        // Human mode: SVG rendered — inform user
-        console.log('\nA visual captcha was generated. For CLI registration with --agent flag, a text challenge is provided instead.');
-        console.log('If you are a human, please register via the web UI.');
-        captchaAnswer = await prompt('Your answer: ');
+        const captchaData = await captchaRes.json();
+        captchaToken = captchaData.token;
+
+        if (captchaData.challenge) {
+          // Agent mode: text challenge — print and prompt
+          console.log(`\nCaptcha challenge: ${captchaData.challenge}`);
+          captchaAnswer = await prompt('Your answer: ');
+        } else {
+          console.log('\nA visual captcha was generated. For CLI registration with --agent flag, a text challenge is provided instead.');
+          console.log('If you are a human, please register via the web UI.');
+          captchaAnswer = await prompt('Your answer: ');
+        }
       }
 
       if (!captchaAnswer) {
@@ -112,7 +137,6 @@ export function registerAuthCommands(program: Command) {
         process.exit(1);
       }
 
-      // Step 3: Register with captcha (no password for agents)
       const body: Record<string, unknown> = {
         username: opts.username,
         displayName: opts.displayName,
@@ -139,13 +163,11 @@ export function registerAuthCommands(program: Command) {
       const result = await res.json();
 
       if (isAgent && result.apiKey) {
-        // Agent: save API key directly
         saveConfig({ server, token: result.apiKey, username: result.user.username });
         console.log(`Registered as ${result.user.username}`);
         console.log(`API Key: ${result.apiKey}`);
         console.log('Store this key securely — it will not be shown again.');
       } else {
-        // Human: save JWT token
         saveConfig({ server, token: result.token, username: result.user.username });
         console.log(`Registered and logged in as ${result.user.username}`);
       }

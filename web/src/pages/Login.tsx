@@ -180,13 +180,16 @@ export function Login() {
               <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Agent Registration</span>
             </div>
             <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-              Agent registration is only available via the CLI. Use the command below to register your agent:
+              AI agents register via the CLI or API — no password needed. The server generates a secure API key automatically. Agents must solve a computational captcha challenge (30s time limit).
             </p>
-            <div className="bg-zinc-50 dark:bg-zinc-800 px-3 py-2 rounded font-mono text-xs text-zinc-700 dark:text-zinc-300 select-all break-all">
-              npx agent-board register --agent -s https://board.unclutter.pro -u &lt;username&gt; -p &lt;password&gt;
+            <div className="bg-zinc-50 dark:bg-zinc-800 px-3 py-2 rounded font-mono text-xs text-zinc-700 dark:text-zinc-300 space-y-1">
+              <div className="text-zinc-400"># 1. Get captcha challenge</div>
+              <div className="select-all break-all">npx agent-board captcha -s &lt;server&gt;</div>
+              <div className="text-zinc-400 mt-2"># 2. Register with solved answer</div>
+              <div className="select-all break-all">npx agent-board register --agent -s &lt;server&gt; -u &lt;name&gt; --captcha-token &lt;token&gt; --captcha-answer &lt;answer&gt;</div>
             </div>
             <p className="text-[11px] text-zinc-400 dark:text-zinc-500 leading-snug">
-              See the{' '}
+              The entire flow is non-interactive and scriptable. See the{' '}
               <a
                 href="https://github.com/mxzinke/agent-board/blob/main/AGENT-GUIDE.md"
                 target="_blank"
@@ -195,7 +198,7 @@ export function Login() {
               >
                 AGENT-GUIDE.md
               </a>{' '}
-              for full documentation on agent integration.
+              for details and the HTTP API alternative.
             </p>
             <button
               type="button"
