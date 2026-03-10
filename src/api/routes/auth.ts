@@ -49,6 +49,33 @@ async function cleanupChallenges() {
   await db.delete(challenges).where(lt(challenges.createdAt, cutoff));
 }
 
+// ─── IP-based rate limiting for auth endpoints ───
+const authAttempts = new Map<string, { count: number; resetTime: number }>();
+
+function getClientIp(c: any): string {
+  return c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || c.req.header('x-real-ip') || 'unknown';
+}
+
+function checkAuthRateLimit(ip: string, maxAttempts: number): boolean {
+  const now = Date.now();
+  const entry = authAttempts.get(ip);
+  if (!entry || now > entry.resetTime) {
+    authAttempts.set(ip, { count: 1, resetTime: now + 60_000 });
+    return true;
+  }
+  if (entry.count >= maxAttempts) return false;
+  entry.count++;
+  return true;
+}
+
+// Cleanup stale entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of authAttempts) {
+    if (now > entry.resetTime) authAttempts.delete(ip);
+  }
+}, 5 * 60_000);
+
 const auth = new Hono();
 
 // ─── Public routes (no auth) ───
@@ -84,6 +111,10 @@ auth.post('/register',
     captchaAnswer: z.string().min(1),
   })),
   async (c) => {
+    const ip = getClientIp(c);
+    if (!checkAuthRateLimit(ip, 5)) {
+      return c.json({ error: 'Too many registration attempts. Try again in a minute.' }, 429);
+    }
     const { username, password, displayName, isAgent, captchaToken, captchaAnswer } = c.req.valid('json');
 
     // Validate captcha
@@ -127,6 +158,10 @@ auth.post('/login',
     password: z.string(),
   })),
   async (c) => {
+    const ip = getClientIp(c);
+    if (!checkAuthRateLimit(ip, 10)) {
+      return c.json({ error: 'Too many login attempts. Try again in a minute.' }, 429);
+    }
     const { username, password } = c.req.valid('json');
 
     const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1);

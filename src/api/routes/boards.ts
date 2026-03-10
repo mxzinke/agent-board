@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db } from '../../db';
 import { boards, boardMembers, inviteTokens, users } from '../../db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth';
 import { suspensionMiddleware } from '../middleware/suspension';
 import { rateLimitMiddleware } from '../middleware/rateLimit';
@@ -256,7 +256,16 @@ boardsRouter.post('/join',
       .where(eq(inviteTokens.token, token)).limit(1);
     if (!invite) throw badRequest('Invalid invite token');
     if (invite.expiresAt && invite.expiresAt < new Date()) throw badRequest('Invite token expired');
-    if (invite.maxUses && invite.uses >= invite.maxUses) throw badRequest('Invite token used up');
+
+    // Atomic increment — prevents race condition on max_uses check
+    const [updated] = await db.update(inviteTokens)
+      .set({ uses: sql`${inviteTokens.uses} + 1` })
+      .where(and(
+        eq(inviteTokens.id, invite.id),
+        sql`(${inviteTokens.maxUses} IS NULL OR ${inviteTokens.uses} < ${inviteTokens.maxUses})`,
+      ))
+      .returning();
+    if (!updated) throw badRequest('Invite token used up');
 
     // Check if already a member
     const [existing] = await db.select().from(boardMembers)
@@ -268,11 +277,6 @@ boardsRouter.post('/join',
       userId: sub,
       role: 'member',
     });
-
-    // Increment uses
-    await db.update(inviteTokens)
-      .set({ uses: invite.uses + 1 })
-      .where(eq(inviteTokens.id, invite.id));
 
     return c.json({ boardId: invite.boardId, role: 'member' });
   }

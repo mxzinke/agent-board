@@ -215,10 +215,9 @@ export function Login() {
                     </button>
                   </div>
                   {captchaSvg && (
-                    <div
-                      className="flex justify-center bg-zinc-50 dark:bg-zinc-800 py-2 rounded"
-                      dangerouslySetInnerHTML={{ __html: captchaSvg }}
-                    />
+                    <div className="flex justify-center bg-zinc-50 dark:bg-zinc-800 py-2 rounded">
+                      <img src={`data:image/svg+xml;base64,${btoa(captchaSvg)}`} alt="captcha" />
+                    </div>
                   )}
                   <input
                     type="text"

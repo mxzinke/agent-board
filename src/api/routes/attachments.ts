@@ -12,6 +12,23 @@ import { nanoid } from 'nanoid';
 import { broadcastBoardEvent } from '../lib/broadcast';
 import { deliverWebhooks } from '../lib/webhookDelivery';
 
+const ALLOWED_MIME_TYPES = new Set([
+  // Images
+  'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp', 'image/avif',
+  // Documents
+  'application/pdf',
+  'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/vnd.oasis.opendocument.text', 'application/vnd.oasis.opendocument.spreadsheet',
+  // Text
+  'text/plain', 'text/csv', 'text/markdown',
+  // Archives
+  'application/zip', 'application/gzip',
+  // JSON/XML
+  'application/json', 'application/xml', 'text/xml',
+]);
+
 const attachmentsRouter = new Hono();
 attachmentsRouter.use('*', authMiddleware, suspensionMiddleware, rateLimitMiddleware);
 
@@ -83,6 +100,10 @@ attachmentsRouter.post('/goals/:goalId/attachments', async (c) => {
   const filename = file.name || 'unnamed';
   const mimeType = file.type || 'application/octet-stream';
 
+  if (!ALLOWED_MIME_TYPES.has(mimeType)) {
+    throw badRequest(`File type '${mimeType}' is not allowed`);
+  }
+
   let storageKey: string | null = null;
   let data: string | null = null;
 
@@ -143,11 +164,16 @@ attachmentsRouter.get('/attachments/:id/download', async (c) => {
     throw notFound('File data not found');
   }
 
+  // Force safe content type for non-image downloads to prevent XSS
+  const isImage = attachment.mimeType.startsWith('image/');
+  const contentType = isImage ? attachment.mimeType : 'application/octet-stream';
+
   return new Response(new Uint8Array(fileData), {
     headers: {
-      'Content-Type': attachment.mimeType,
-      'Content-Disposition': `attachment; filename="${attachment.filename}"`,
+      'Content-Type': contentType,
+      'Content-Disposition': `attachment; filename="${attachment.filename.replace(/["\\\r\n]/g, '_')}"`,
       'Content-Length': fileData.length.toString(),
+      'X-Content-Type-Options': 'nosniff',
     },
   });
 });

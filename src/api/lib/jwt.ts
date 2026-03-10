@@ -1,6 +1,10 @@
 import { SignJWT, jwtVerify } from 'jose';
 
-const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'dev-secret-change-in-production');
+const rawSecret = process.env.JWT_SECRET;
+if (!rawSecret && process.env.NODE_ENV !== 'development') {
+  throw new Error('JWT_SECRET environment variable is required in production');
+}
+const secret = new TextEncoder().encode(rawSecret || 'dev-secret-do-not-use-in-production');
 
 export interface JwtPayload {
   sub: string;
