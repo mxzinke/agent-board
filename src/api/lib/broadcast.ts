@@ -3,7 +3,7 @@
 import postgres from 'postgres';
 
 interface SSEConnection {
-  send: (data: string) => void;
+  send: (data: string) => void | Promise<void>;
 }
 
 export interface BoardEvent {

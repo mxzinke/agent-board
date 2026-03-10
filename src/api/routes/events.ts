@@ -40,36 +40,42 @@ eventsRouter.get('/boards/:boardId/events', async (c) => {
   c.header('X-Content-Type-Options', 'nosniff');
 
   return streamSSE(c, async (stream) => {
+    let aborted = false;
+
     const conn = {
-      send: (data: string) => {
-        stream.writeSSE({ data, event: 'board-update' });
+      send: async (data: string) => {
+        try {
+          await stream.writeSSE({ data, event: 'board-update' });
+        } catch {
+          // Connection dead — will be cleaned up
+        }
       },
     };
 
     addConnection(boardId, conn);
 
-    // Send initial connected event
-    await stream.writeSSE({ data: JSON.stringify({ type: 'connected' }), event: 'board-update' });
-
-    // Keepalive every 10 seconds — must be shorter than any proxy/LB idle
-    // timeout in the chain (Hetzner LB TCP ~10-60s, Traefik, Cilium).
-    // Using await to ensure each frame is flushed to the network.
-    const keepalive = setInterval(async () => {
-      try {
-        await stream.writeSSE({ data: '', event: 'keepalive' });
-      } catch {
-        clearInterval(keepalive);
-      }
-    }, 10_000);
-
-    // Wait until the stream is closed
     stream.onAbort(() => {
-      clearInterval(keepalive);
+      aborted = true;
       removeConnection(boardId, conn);
     });
 
-    // Keep the stream open indefinitely
-    await new Promise(() => {});
+    // Send initial connected event
+    await stream.writeSSE({ data: JSON.stringify({ type: 'connected' }), event: 'board-update' });
+
+    // Keepalive loop — uses stream.sleep() to stay within the callback's
+    // execution flow. This ensures writes trigger the TransformStream's
+    // pull mechanism in Bun, so frames actually reach the client.
+    // setInterval + await new Promise(() => {}) does NOT work because
+    // interval writes happen outside the pull chain and get buffered forever.
+    while (!aborted) {
+      await stream.sleep(10_000);
+      if (aborted) break;
+      try {
+        await stream.writeSSE({ data: 'ping', event: 'keepalive' });
+      } catch {
+        break;
+      }
+    }
   });
 });
 
