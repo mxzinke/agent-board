@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useStore } from '../store';
 import { api } from '../api';
+import { MarkdownContent } from '../components/MarkdownContent';
 
 const STATUSES = ['backlog', 'todo', 'in_progress', 'review', 'done'];
 const STATUS_LABELS: Record<string, string> = {
@@ -27,6 +28,8 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
   const [attachmentsList, setAttachmentsList] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [assigneeDropdownOpen, setAssigneeDropdownOpen] = useState(false);
+  const assigneeDropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!selectedGoal || !currentBoard) return null;
@@ -97,6 +100,26 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
     window.addEventListener('goal-detail-refresh', handler);
     return () => window.removeEventListener('goal-detail-refresh', handler);
   }, [loadAttachments]);
+
+  // Close assignee dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (assigneeDropdownRef.current && !assigneeDropdownRef.current.contains(e.target as Node)) {
+        setAssigneeDropdownOpen(false);
+      }
+    };
+    if (assigneeDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [assigneeDropdownOpen]);
+
+  const handleAssigneeChange = async (assigneeId: string | null) => {
+    setAssigneeDropdownOpen(false);
+    await api.updateGoal(currentBoard.id, selectedGoal.id, { assigneeId });
+    await refresh();
+    await fetchGoals(currentBoard.id);
+  };
 
   const handleUploadFiles = async (files: FileList | File[]) => {
     if (!selectedGoal) return;
@@ -196,7 +219,7 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
               {selectedGoal.title}
             </h2>
             {selectedGoal.description && (
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 whitespace-pre-wrap">{selectedGoal.description}</p>
+              <MarkdownContent className="mt-2">{selectedGoal.description}</MarkdownContent>
             )}
           </div>
         )}
@@ -222,23 +245,62 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
       {/* Assignee */}
       <div className="mb-6">
         <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2">Assignee</h3>
-        <select
-          value={selectedGoal.assigneeId || ''}
-          onChange={async (e) => {
-            const assigneeId = e.target.value || null;
-            await api.updateGoal(currentBoard.id, selectedGoal.id, { assigneeId });
-            await refresh();
-            await fetchGoals(currentBoard.id);
-          }}
-          className="w-full px-2 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
-        >
-          <option value="">Unassigned</option>
-          {currentBoard.members?.map((m: any) => (
-            <option key={m.userId} value={m.userId}>
-              {m.displayName || m.username}
-            </option>
-          ))}
-        </select>
+        <div className="relative" ref={assigneeDropdownRef}>
+          <button
+            type="button"
+            onClick={() => setAssigneeDropdownOpen(!assigneeDropdownOpen)}
+            className="w-full px-2 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-left flex items-center justify-between focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
+          >
+            <span className="flex items-center gap-2">
+              {(() => {
+                const assignee = selectedGoal.assigneeId
+                  ? currentBoard.members?.find((m: any) => m.userId === selectedGoal.assigneeId)
+                  : null;
+                return assignee ? (
+                  <>
+                    <span className="text-zinc-900 dark:text-zinc-100">
+                      {assignee.displayName || assignee.username || 'Unknown'}
+                    </span>
+                    {assignee.isAgent && (
+                      <span className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 text-zinc-400 dark:text-zinc-500 border border-zinc-200 dark:border-zinc-700">agent</span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-zinc-400 dark:text-zinc-500">Unassigned</span>
+                );
+              })()}
+            </span>
+            <span className="text-zinc-400 dark:text-zinc-500 text-xs ml-2">{assigneeDropdownOpen ? '\u25B2' : '\u25BC'}</span>
+          </button>
+          {assigneeDropdownOpen && (
+            <div className="absolute z-50 mt-1 w-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg max-h-60 overflow-y-auto">
+              <button
+                type="button"
+                onClick={() => handleAssigneeChange(null)}
+                className={`w-full px-2 py-1.5 text-sm text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 ${
+                  !selectedGoal.assigneeId ? 'bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 dark:text-zinc-400'
+                }`}
+              >
+                Unassigned
+              </button>
+              {currentBoard.members?.map((m: any) => (
+                <button
+                  key={m.userId}
+                  type="button"
+                  onClick={() => handleAssigneeChange(m.userId)}
+                  className={`w-full px-2 py-1.5 text-sm text-left flex items-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 ${
+                    selectedGoal.assigneeId === m.userId ? 'bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'text-zinc-700 dark:text-zinc-300'
+                  }`}
+                >
+                  <span>{m.displayName || m.username}</span>
+                  {m.isAgent && (
+                    <span className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 text-zinc-400 dark:text-zinc-500 border border-zinc-200 dark:border-zinc-700">agent</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Subtasks */}
@@ -396,7 +458,7 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
                   {new Date(comment.createdAt).toLocaleString()}
                 </span>
               </div>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap">{comment.body}</p>
+              <MarkdownContent>{comment.body}</MarkdownContent>
             </div>
           ))}
         </div>
