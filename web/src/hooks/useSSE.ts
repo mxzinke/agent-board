@@ -46,6 +46,8 @@ export function useSSE(boardId: string | null) {
             api.getGoal(currentBoard.id, selectedGoal.id).then((goal) => {
               if (!disposed) setSelectedGoal(goal);
             }).catch(() => {});
+            // Notify GoalDetail to refresh attachments
+            window.dispatchEvent(new CustomEvent('goal-detail-refresh', { detail: { goalId: selectedGoal.id } }));
           }
         } catch {
           // Ignore parse errors

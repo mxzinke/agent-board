@@ -91,6 +91,13 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
 
   useEffect(() => { loadAttachments(); }, [loadAttachments]);
 
+  // Listen for SSE-triggered refreshes (attachments, comments)
+  useEffect(() => {
+    const handler = () => { loadAttachments(); };
+    window.addEventListener('goal-detail-refresh', handler);
+    return () => window.removeEventListener('goal-detail-refresh', handler);
+  }, [loadAttachments]);
+
   const handleUploadFiles = async (files: FileList | File[]) => {
     if (!selectedGoal) return;
     setUploading(true);
