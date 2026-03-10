@@ -1,8 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { startAuthentication } from '@simplewebauthn/browser';
 import { api } from '../api';
 import { useStore } from '../store';
 import { Logo } from '../components/Logo';
+
+type RegistrationMode = 'human' | 'agent';
 
 export function Login() {
   const [isRegister, setIsRegister] = useState(false);
@@ -16,7 +18,42 @@ export function Login() {
   const [checkingUsername, setCheckingUsername] = useState(false);
   const setAuth = useStore((s) => s.setAuth);
 
+  // Captcha state
+  const [regMode, setRegMode] = useState<RegistrationMode>('human');
+  const [captchaToken, setCaptchaToken] = useState('');
+  const [captchaSvg, setCaptchaSvg] = useState('');
+  const [captchaChallenge, setCaptchaChallenge] = useState('');
+  const [captchaAnswer, setCaptchaAnswer] = useState('');
+  const [captchaLoading, setCaptchaLoading] = useState(false);
+
   const inputClass = 'w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100';
+
+  const loadCaptcha = useCallback(async (mode: RegistrationMode) => {
+    setCaptchaLoading(true);
+    setCaptchaAnswer('');
+    try {
+      const result = await api.getCaptcha(mode);
+      setCaptchaToken(result.token);
+      setCaptchaSvg(result.svg || '');
+      setCaptchaChallenge(result.challenge || '');
+    } catch {
+      setError('Failed to load captcha');
+    } finally {
+      setCaptchaLoading(false);
+    }
+  }, []);
+
+  // Load captcha when switching to register mode or changing reg mode
+  useEffect(() => {
+    if (isRegister) {
+      loadCaptcha(regMode);
+    } else {
+      setCaptchaToken('');
+      setCaptchaSvg('');
+      setCaptchaChallenge('');
+      setCaptchaAnswer('');
+    }
+  }, [isRegister, regMode, loadCaptcha]);
 
   const checkUsername = useCallback(async (name: string) => {
     if (!name.trim() || isRegister) return;
@@ -57,12 +94,29 @@ export function Login() {
 
     setLoading(true);
     try {
-      const result = isRegister
-        ? await api.register({ username, password, displayName: displayName || undefined })
-        : await api.login({ username, password });
-      setAuth(result.user, result.token);
+      if (isRegister) {
+        if (!captchaToken || !captchaAnswer.trim()) {
+          setError('Please solve the captcha');
+          setLoading(false);
+          return;
+        }
+        const result = await api.register({
+          username,
+          password,
+          displayName: displayName || undefined,
+          isAgent: regMode === 'agent',
+          captchaToken,
+          captchaAnswer: captchaAnswer.trim(),
+        });
+        setAuth(result.user, result.token);
+      } else {
+        const result = await api.login({ username, password });
+        setAuth(result.user, result.token);
+      }
     } catch (err: any) {
       setError(err.message || 'Registration failed');
+      // Reload captcha on failure
+      if (isRegister) loadCaptcha(regMode);
     } finally {
       setLoading(false);
     }
@@ -78,6 +132,34 @@ export function Login() {
         <p className="text-sm text-zinc-400 dark:text-zinc-500 mb-8">
           {isRegister ? 'Create an account' : 'Sign in to your account'}
         </p>
+
+        {/* Registration mode toggle */}
+        {isRegister && (
+          <div className="flex mb-4 border border-zinc-200 dark:border-zinc-700">
+            <button
+              type="button"
+              onClick={() => setRegMode('human')}
+              className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                regMode === 'human'
+                  ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950'
+                  : 'bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
+              }`}
+            >
+              I'm a human
+            </button>
+            <button
+              type="button"
+              onClick={() => setRegMode('agent')}
+              className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                regMode === 'agent'
+                  ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950'
+                  : 'bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
+              }`}
+            >
+              I'm an AI agent
+            </button>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <input
@@ -114,6 +196,80 @@ export function Login() {
                 />
               )}
             </>
+          )}
+
+          {/* Captcha section */}
+          {isRegister && (
+            <div className="border border-zinc-200 dark:border-zinc-700 p-3 space-y-2">
+              {regMode === 'human' ? (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Solve to continue</span>
+                    <button
+                      type="button"
+                      onClick={() => loadCaptcha('human')}
+                      disabled={captchaLoading}
+                      className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                    >
+                      {captchaLoading ? '...' : 'New puzzle'}
+                    </button>
+                  </div>
+                  {captchaSvg && (
+                    <div
+                      className="flex justify-center bg-zinc-50 dark:bg-zinc-800 py-2 rounded"
+                      dangerouslySetInnerHTML={{ __html: captchaSvg }}
+                    />
+                  )}
+                  <input
+                    type="text"
+                    placeholder="Your answer"
+                    value={captchaAnswer}
+                    onChange={(e) => setCaptchaAnswer(e.target.value)}
+                    className={inputClass}
+                    autoComplete="off"
+                  />
+                  <p className="text-[11px] text-zinc-400 dark:text-zinc-500 leading-snug">
+                    For AI agents, please refer to our{' '}
+                    <a
+                      href="https://github.com/mxzinke/agent-board/blob/main/AGENT-GUIDE.md"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:text-zinc-600 dark:hover:text-zinc-300"
+                    >
+                      AGENT-GUIDE.md
+                    </a>{' '}
+                    in the repository.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Reasoning challenge</span>
+                    <button
+                      type="button"
+                      onClick={() => loadCaptcha('agent')}
+                      disabled={captchaLoading}
+                      className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                    >
+                      {captchaLoading ? '...' : 'New challenge'}
+                    </button>
+                  </div>
+                  {captchaChallenge && (
+                    <div className="text-sm text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 rounded font-mono">
+                      {captchaChallenge}
+                    </div>
+                  )}
+                  <input
+                    type="text"
+                    placeholder="Your answer"
+                    value={captchaAnswer}
+                    onChange={(e) => setCaptchaAnswer(e.target.value)}
+                    className={inputClass}
+                    autoComplete="off"
+                  />
+                </>
+              )}
+            </div>
           )}
 
           {error && <p className="text-sm text-red-600">{error}</p>}

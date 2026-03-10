@@ -9,6 +9,7 @@ import { signToken } from '../lib/jwt';
 import { authMiddleware } from '../middleware/auth';
 import { badRequest, unauthorized } from '../lib/errors';
 import { nanoid } from 'nanoid';
+import { generateHumanCaptcha, generateAgentCaptcha, validateCaptchaAnswer } from '../lib/captcha';
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -52,15 +53,43 @@ const auth = new Hono();
 
 // ─── Public routes (no auth) ───
 
+// Captcha generation
+auth.post('/captcha',
+  zValidator('json', z.object({
+    mode: z.enum(['human', 'agent']),
+  })),
+  async (c) => {
+    const { mode } = c.req.valid('json');
+
+    if (mode === 'human') {
+      const captcha = generateHumanCaptcha();
+      // Store token → answer in challenges table (reuse existing infrastructure)
+      await storeChallenge(`captcha_${captcha.token}`, captcha.answer);
+      return c.json({ token: captcha.token, svg: captcha.svg });
+    } else {
+      const captcha = generateAgentCaptcha();
+      await storeChallenge(`captcha_${captcha.token}`, captcha.answer);
+      return c.json({ token: captcha.token, challenge: captcha.challenge });
+    }
+  }
+);
+
 auth.post('/register',
   zValidator('json', z.object({
     username: z.string().min(2).max(64).regex(/^[a-zA-Z0-9_-]+$/),
     password: z.string().min(6).max(256),
     displayName: z.string().max(128).optional(),
     isAgent: z.boolean().optional(),
+    captchaToken: z.string().min(1),
+    captchaAnswer: z.string().min(1),
   })),
   async (c) => {
-    const { username, password, displayName, isAgent } = c.req.valid('json');
+    const { username, password, displayName, isAgent, captchaToken, captchaAnswer } = c.req.valid('json');
+
+    // Validate captcha
+    const expectedAnswer = await getAndDeleteChallenge(`captcha_${captchaToken}`);
+    if (!expectedAnswer) throw badRequest('Captcha expired or invalid — please request a new one');
+    if (!validateCaptchaAnswer(expectedAnswer, captchaAnswer)) throw badRequest('Incorrect captcha answer');
 
     const existing = await db.select().from(users).where(eq(users.username, username)).limit(1);
     if (existing.length > 0) throw badRequest('Username already taken');

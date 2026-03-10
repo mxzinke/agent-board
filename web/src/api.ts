@@ -25,7 +25,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export const api = {
   // Auth
-  register: (data: { username: string; password: string; displayName?: string }) =>
+  getCaptcha: (mode: 'human' | 'agent') =>
+    request<{ token: string; svg?: string; challenge?: string }>('/auth/captcha', { method: 'POST', body: JSON.stringify({ mode }) }),
+  register: (data: { username: string; password: string; displayName?: string; isAgent?: boolean; captchaToken: string; captchaAnswer: string }) =>
     request<{ user: any; token: string }>('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   login: (data: { username: string; password: string }) =>
     request<{ user: any; token: string }>('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
