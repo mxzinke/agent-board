@@ -570,72 +570,115 @@ function fibonacci(n: number): number {
 }
 
 const agentChallenges: Array<() => { challenge: string; answer: string }> = [
-  // String reversal
-  () => {
-    const words = ['algorithm', 'function', 'variable', 'database', 'protocol', 'endpoint', 'framework', 'pipeline', 'callback', 'instance'];
-    const word = words[randomInt(0, words.length - 1)];
-    return {
-      challenge: `Reverse the following string: "${word}"`,
-      answer: word.split('').reverse().join(''),
-    };
-  },
-  // Letter counting
-  () => {
-    const words = ['mississippi', 'programming', 'accessibility', 'authentication', 'communication', 'infrastructure'];
-    const word = words[randomInt(0, words.length - 1)];
-    const targetLetters = [...new Set(word.split(''))].filter(l => (word.match(new RegExp(l, 'g')) || []).length > 1);
-    const letter = targetLetters[randomInt(0, targetLetters.length - 1)];
-    const count = (word.match(new RegExp(letter, 'g')) || []).length;
-    return {
-      challenge: `How many times does the letter "${letter}" appear in "${word}"? Answer with just the number.`,
-      answer: String(count),
-    };
-  },
-  // Sequence completion
-  () => {
-    const sequences: Array<{ items: string[]; next: string }> = [
-      { items: ['2', '4', '8', '16'], next: '32' },
-      { items: ['1', '1', '2', '3', '5'], next: '8' },
-      { items: ['3', '6', '9', '12'], next: '15' },
-      { items: ['1', '4', '9', '16'], next: '25' },
-      { items: ['2', '6', '12', '20'], next: '30' },
-      { items: ['100', '81', '64', '49'], next: '36' },
-    ];
-    const seq = sequences[randomInt(0, sequences.length - 1)];
-    return {
-      challenge: `What comes next in this sequence? ${seq.items.join(', ')}, ___. Answer with just the number.`,
-      answer: seq.next,
-    };
-  },
-  // Simple code evaluation
-  () => {
-    const a = randomInt(2, 10);
-    const b = randomInt(2, 10);
-    return {
-      challenge: `What does this expression evaluate to? (${a} * ${b}) + ${a} - ${b}. Answer with just the number.`,
-      answer: String((a * b) + a - b),
-    };
-  },
-  // ASCII value
-  () => {
-    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const letter = letters[randomInt(0, 25)];
-    return {
-      challenge: `What is the ASCII code of the uppercase letter "${letter}"? Answer with just the number.`,
-      answer: String(letter.charCodeAt(0)),
-    };
-  },
+  // ─── Computationally hard challenges (easy for LLMs, hard for humans without tools) ───
 
-  // ─── Harder challenges requiring genuine reasoning ───
-
-  // Sum of first N primes
+  // Large multiplication
   () => {
-    const n = randomInt(5, 10);
+    const a = randomInt(100, 999);
+    const b = randomInt(100, 999);
+    return {
+      challenge: `Calculate: ${a} × ${b}. Answer with just the number.`,
+      answer: String(a * b),
+    };
+  },
+  // Multi-step arithmetic with large numbers
+  () => {
+    const a = randomInt(100, 500);
+    const b = randomInt(100, 500);
+    const c = randomInt(10, 99);
+    const d = randomInt(10, 99);
+    return {
+      challenge: `Calculate: (${a} × ${b}) + (${c} × ${d}). Answer with just the number.`,
+      answer: String(a * b + c * d),
+    };
+  },
+  // Sum of first N primes (larger N)
+  () => {
+    const n = randomInt(10, 20);
     const primes = getPrimesUpTo(n);
     const sum = primes.reduce((a, b) => a + b, 0);
     return {
       challenge: `What is the sum of the first ${n} prime numbers? Answer with just the number.`,
       answer: String(sum),
+    };
+  },
+  // Fibonacci with larger N
+  () => {
+    const n = randomInt(12, 20);
+    const result = fibonacci(n);
+    return {
+      challenge: `What is the ${n}th Fibonacci number? (F(0)=0, F(1)=1, F(2)=1, ...). Answer with just the number.`,
+      answer: String(result),
+    };
+  },
+  // Power calculation
+  () => {
+    const base = randomInt(2, 12);
+    const exp = randomInt(3, 6);
+    const result = Math.pow(base, exp);
+    return {
+      challenge: `Calculate: ${base}^${exp}. Answer with just the number.`,
+      answer: String(result),
+    };
+  },
+  // Complex nested expression
+  () => {
+    const a = randomInt(5, 15);
+    const b = randomInt(2, 8);
+    const c = randomInt(3, 12);
+    const result = Math.pow(a, 2) + b * c - Math.floor(Math.pow(a, 2) / c);
+    return {
+      challenge: `Calculate: ${a}² + ${b} × ${c} - floor(${a}² / ${c}). Answer with just the number.`,
+      answer: String(result),
+    };
+  },
+  // Code evaluation — loop
+  () => {
+    const n = randomInt(5, 12);
+    let sum = 0;
+    for (let i = 1; i <= n; i++) sum += i * i;
+    return {
+      challenge: `What does this return? function f(n) { let s=0; for(let i=1;i<=n;i++) s+=i*i; return s; } f(${n}). Answer with just the number.`,
+      answer: String(sum),
+    };
+  },
+  // Code evaluation — recursive factorial
+  () => {
+    const n = randomInt(6, 12);
+    let result = 1;
+    for (let i = 2; i <= n; i++) result *= i;
+    return {
+      challenge: `Calculate ${n}! (${n} factorial). Answer with just the number.`,
+      answer: String(result),
+    };
+  },
+  // N-th prime number
+  () => {
+    const n = randomInt(15, 30);
+    const primes = getPrimesUpTo(n);
+    return {
+      challenge: `What is the ${n}th prime number? (2 is the 1st prime). Answer with just the number.`,
+      answer: String(primes[n - 1]),
+    };
+  },
+  // Modular arithmetic
+  () => {
+    const a = randomInt(100, 999);
+    const b = randomInt(100, 999);
+    const m = randomInt(7, 23);
+    return {
+      challenge: `Calculate: (${a} × ${b}) mod ${m}. Answer with just the number.`,
+      answer: String((a * b) % m),
+    };
+  },
+  // String manipulation — count vowels in a generated string
+  () => {
+    const words = ['supercalifragilistic', 'antidisestablishment', 'incomprehensibilities', 'counterrevolutionary', 'electroencephalograph'];
+    const word = words[randomInt(0, words.length - 1)];
+    const vowels = word.split('').filter(c => 'aeiou'.includes(c)).length;
+    return {
+      challenge: `How many vowels (a,e,i,o,u) are in "${word}"? Answer with just the number.`,
+      answer: String(vowels),
     };
   },
   // Logic puzzle — syllogisms
@@ -664,26 +707,17 @@ const agentChallenges: Array<() => { challenge: string; answer: string }> = [
     ];
     return puzzles[randomInt(0, puzzles.length - 1)];
   },
-  // Fibonacci evaluation — code reasoning
+  // GCD calculation
   () => {
-    const n = randomInt(6, 10);
-    const result = fibonacci(n);
+    const a = randomInt(50, 500);
+    const b = randomInt(50, 500);
+    const gcd = (x: number, y: number): number => y === 0 ? x : gcd(y, x % y);
     return {
-      challenge: `What does this function return? function f(n) { return n <= 1 ? n : f(n-1) + f(n-2); } f(${n}). Answer with just the number.`,
-      answer: String(result),
+      challenge: `What is the greatest common divisor (GCD) of ${a} and ${b}? Answer with just the number.`,
+      answer: String(gcd(a, b)),
     };
   },
-  // Complex sequence with twist
-  () => {
-    const puzzles = [
-      { challenge: 'What comes next? 1, 3, 6, 10, 15, 21, ___. Answer with just the number.', answer: '28' },
-      { challenge: 'What comes next? 1, 2, 5, 14, 42, ___. Answer with just the number.', answer: '132' },
-      { challenge: 'What comes next? 3, 9, 27, 81, 243, ___. Answer with just the number.', answer: '729' },
-      { challenge: 'What comes next? 1, 2, 6, 24, 120, ___. Answer with just the number.', answer: '720' },
-    ];
-    return puzzles[randomInt(0, puzzles.length - 1)];
-  },
-  // Multi-step arithmetic
+  // Multi-step with exponents
   () => {
     const a = randomInt(3, 9);
     const b = randomInt(2, 5);

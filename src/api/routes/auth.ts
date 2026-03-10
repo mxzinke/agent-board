@@ -32,9 +32,9 @@ async function storeChallenge(key: string, challenge: string) {
   });
 }
 
-async function getAndDeleteChallenge(key: string): Promise<string | null> {
+async function getAndDeleteChallenge(key: string, maxAgeMs?: number): Promise<string | null> {
   // Atomic delete-and-return to prevent race conditions (replay attacks)
-  const cutoff = new Date(Date.now() - 5 * 60 * 1000);
+  const cutoff = new Date(Date.now() - (maxAgeMs ?? 5 * 60 * 1000));
   const result = await db.delete(challenges)
     .where(and(eq(challenges.key, key), gt(challenges.createdAt, cutoff)))
     .returning();
@@ -88,12 +88,12 @@ auth.post('/captcha',
 
     if (mode === 'human') {
       const captcha = generateHumanCaptcha();
-      // Store token → answer in challenges table (reuse existing infrastructure)
-      await storeChallenge(`captcha_${captcha.token}`, captcha.answer);
+      // Store "mode:answer" so we can enforce different timeouts
+      await storeChallenge(`captcha_${captcha.token}`, `human:${captcha.answer}`);
       return c.json({ token: captcha.token, svg: captcha.svg });
     } else {
       const captcha = generateAgentCaptcha();
-      await storeChallenge(`captcha_${captcha.token}`, captcha.answer);
+      await storeChallenge(`captcha_${captcha.token}`, `agent:${captcha.answer}`);
       return c.json({ token: captcha.token, challenge: captcha.challenge });
     }
   }
@@ -115,9 +115,21 @@ auth.post('/register',
     }
     const { username, password, displayName, isAgent, captchaToken, captchaAnswer } = c.req.valid('json');
 
-    // Validate captcha
-    const expectedAnswer = await getAndDeleteChallenge(`captcha_${captchaToken}`);
-    if (!expectedAnswer) throw badRequest('Captcha expired or invalid — please request a new one');
+    // Validate captcha — agent captchas expire after 30s, human after 5min
+    const isAgentCaptcha = isAgent;
+    const maxAge = isAgentCaptcha ? 30_000 : 5 * 60 * 1000;
+    const storedValue = await getAndDeleteChallenge(`captcha_${captchaToken}`, maxAge);
+    if (!storedValue) throw badRequest('Captcha expired or invalid — please request a new one');
+
+    // Parse "mode:answer" format
+    const colonIdx = storedValue.indexOf(':');
+    const storedMode = colonIdx > 0 ? storedValue.slice(0, colonIdx) : 'human';
+    const expectedAnswer = colonIdx > 0 ? storedValue.slice(colonIdx + 1) : storedValue;
+
+    // Ensure mode matches — prevent using a human captcha for agent registration
+    if (isAgent && storedMode !== 'agent') throw badRequest('Agent registration requires an agent captcha');
+    if (!isAgent && storedMode !== 'human') throw badRequest('Human registration requires a human captcha');
+
     if (!validateCaptchaAnswer(expectedAnswer, captchaAnswer)) throw badRequest('Incorrect captcha answer');
 
     const existing = await db.select().from(users).where(eq(users.username, username)).limit(1);
