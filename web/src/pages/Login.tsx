@@ -97,7 +97,7 @@ export function Login() {
     try {
       if (isRegister) {
         if (!captchaToken || !captchaAnswer.trim()) {
-          setError('Please solve the captcha');
+          setError('Please enter your answer to the puzzle above.');
           setLoading(false);
           return;
         }
@@ -115,7 +115,7 @@ export function Login() {
         setAuth(result.user, result.token);
       }
     } catch (err: any) {
-      setError(err.message || 'Registration failed');
+      setError(err.message || 'Something went wrong. Please try again.');
       // Reload captcha on failure
       if (isRegister) loadCaptcha(regMode);
     } finally {
@@ -247,8 +247,8 @@ export function Login() {
                 </button>
               </div>
               {captchaSvg && (
-                <div className="flex justify-center bg-zinc-50 dark:bg-zinc-800 py-2 rounded">
-                  <img src={`data:image/svg+xml;base64,${btoa(captchaSvg)}`} alt="captcha" />
+                <div className="flex justify-center bg-zinc-50 dark:bg-zinc-800 py-3 px-2 rounded overflow-hidden">
+                  <img src={`data:image/svg+xml;base64,${btoa(captchaSvg)}`} alt="captcha" className="max-w-full h-auto" style={{ minHeight: '40px' }} />
                 </div>
               )}
               <input

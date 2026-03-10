@@ -435,37 +435,27 @@ function renderCharPixels(char: string, offsetX: number, offsetY: number, pixelS
 }
 
 function renderMaskedSvg(text: string): string {
-  const maxWidth = 380;
-  const padding = 24;
-
-  // Auto-scale pixel size to fit within maxWidth
-  const availableWidth = maxWidth - padding;
-  // charWidth = 5 * pixelSize + spacing, we need text.length * charWidth <= availableWidth
-  // Start with pixelSize=3, reduce if needed
-  let pixelSize = 3;
-  while (pixelSize > 1 && text.length * (5 * pixelSize + Math.max(2, pixelSize)) > availableWidth) {
-    pixelSize--;
-  }
-
-  const charSpacing = Math.max(2, pixelSize);
+  // Fixed pixel size of 4 for readability — SVG scales in the UI via CSS max-width
+  const pixelSize = 4;
+  const charSpacing = 4;
   const charWidth = 5 * pixelSize + charSpacing;
   const charHeight = 7 * pixelSize;
 
-  const width = Math.min(maxWidth, text.length * charWidth + padding);
-  const height = charHeight + 20;
+  const width = text.length * charWidth + 32;
+  const height = charHeight + 28;
 
   let svgContent = '';
 
   // Background
   svgContent += `<rect width="${width}" height="${height}" fill="#f5f5f0" rx="4"/>`;
 
-  // Noise lines (behind text)
-  for (let i = 0; i < 8; i++) {
+  // Noise lines (behind text) — moderate noise for readability
+  for (let i = 0; i < 5; i++) {
     svgContent += generateNoiseLine(width, height);
   }
 
   // Noise circles
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 3; i++) {
     svgContent += generateNoiseCircle(width, height);
   }
 
@@ -478,12 +468,9 @@ function renderMaskedSvg(text: string): string {
     svgContent += renderCharPixels(text[i], startX + i * charWidth, startY, pixelSize);
   }
 
-  // More noise on top
-  for (let i = 0; i < 4; i++) {
+  // Light noise on top
+  for (let i = 0; i < 2; i++) {
     svgContent += generateNoiseLine(width, height);
-  }
-  for (let i = 0; i < 3; i++) {
-    svgContent += generateNoiseCircle(width, height);
   }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${svgContent}</svg>`;

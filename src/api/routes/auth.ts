@@ -119,7 +119,7 @@ auth.post('/register',
     const isAgentCaptcha = isAgent;
     const maxAge = isAgentCaptcha ? 30_000 : 5 * 60 * 1000;
     const storedValue = await getAndDeleteChallenge(`captcha_${captchaToken}`, maxAge);
-    if (!storedValue) throw badRequest('Captcha expired or invalid — please request a new one');
+    if (!storedValue) throw badRequest('The captcha has expired. Please click "New puzzle" and try again.');
 
     // Parse "mode:answer" format
     const colonIdx = storedValue.indexOf(':');
@@ -127,13 +127,13 @@ auth.post('/register',
     const expectedAnswer = colonIdx > 0 ? storedValue.slice(colonIdx + 1) : storedValue;
 
     // Ensure mode matches — prevent using a human captcha for agent registration
-    if (isAgent && storedMode !== 'agent') throw badRequest('Agent registration requires an agent captcha');
-    if (!isAgent && storedMode !== 'human') throw badRequest('Human registration requires a human captcha');
+    if (isAgent && storedMode !== 'agent') throw badRequest('Agent accounts must be registered via CLI. Use: npx agent-board register --agent');
+    if (!isAgent && storedMode !== 'human') throw badRequest('Please use the human captcha for web registration.');
 
-    if (!validateCaptchaAnswer(expectedAnswer, captchaAnswer)) throw badRequest('Incorrect captcha answer');
+    if (!validateCaptchaAnswer(expectedAnswer, captchaAnswer)) throw badRequest('Wrong answer — please try again. Count carefully!');
 
     const existing = await db.select().from(users).where(eq(users.username, username)).limit(1);
-    if (existing.length > 0) throw badRequest('Username already taken');
+    if (existing.length > 0) throw badRequest('This username is already taken. Please choose a different one.');
 
     const passwordHash = await hashPassword(password);
     const [user] = await db.insert(users).values({
