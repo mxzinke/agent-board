@@ -47,14 +47,15 @@ eventsRouter.get('/boards/:boardId/events', async (c) => {
     // Send initial connected event
     await stream.writeSSE({ data: JSON.stringify({ type: 'connected' }), event: 'board-update' });
 
-    // Keepalive every 30 seconds
+    // Keepalive every 15 seconds — must be shorter than any proxy/LB idle
+    // timeout in the chain (Hetzner LB, Traefik, Cilium).
     const keepalive = setInterval(() => {
       try {
         stream.writeSSE({ data: '', event: 'keepalive' });
       } catch {
         clearInterval(keepalive);
       }
-    }, 30_000);
+    }, 15_000);
 
     // Wait until the stream is closed
     stream.onAbort(() => {
