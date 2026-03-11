@@ -29,7 +29,7 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
   const [editingSubtaskTitle, setEditingSubtaskTitle] = useState('');
   const [attachmentsList, setAttachmentsList] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
+  const [fileDragOver, setFileDragOver] = useState(false);
   const [assigneeDropdownOpen, setAssigneeDropdownOpen] = useState(false);
   const [draggedSubtaskId, setDraggedSubtaskId] = useState<string | null>(null);
   const [subtaskDropIndex, setSubtaskDropIndex] = useState<number | null>(null);
@@ -53,14 +53,12 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
 
   useEffect(() => { loadAttachments(); }, [loadAttachments]);
 
-  // Listen for SSE-triggered refreshes (attachments, comments)
   useEffect(() => {
     const handler = () => { loadAttachments(); };
     window.addEventListener('goal-detail-refresh', handler);
     return () => window.removeEventListener('goal-detail-refresh', handler);
   }, [loadAttachments]);
 
-  // Close assignee dropdown on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (assigneeDropdownRef.current && !assigneeDropdownRef.current.contains(e.target as Node)) {
@@ -113,6 +111,7 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
     await refresh();
   };
 
+  // Subtask DnD handlers
   const handleSubtaskDragStart = (e: React.DragEvent, subtaskId: string) => {
     e.dataTransfer.setData('text/plain', subtaskId);
     e.dataTransfer.setData('application/x-subtask', 'true');
@@ -120,15 +119,16 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
     setDraggedSubtaskId(subtaskId);
   };
 
-  const handleSubtaskDragOver = (e: React.DragEvent) => {
+  const handleSubtaskContainerDragOver = (e: React.DragEvent) => {
+    if (!e.dataTransfer.types.includes('application/x-subtask')) return;
     e.preventDefault();
     e.stopPropagation();
     e.dataTransfer.dropEffect = 'move';
-    if (!selectedGoal.subtasks) return;
 
-    let insertIdx = selectedGoal.subtasks.length;
-    for (let i = 0; i < selectedGoal.subtasks.length; i++) {
-      const el = subtaskRefs.current.get(selectedGoal.subtasks[i].id);
+    const subtasks = sortedSubtasks;
+    let insertIdx = subtasks.length;
+    for (let i = 0; i < subtasks.length; i++) {
+      const el = subtaskRefs.current.get(subtasks[i].id);
       if (!el) continue;
       const rect = el.getBoundingClientRect();
       const midY = rect.top + rect.height / 2;
@@ -139,7 +139,7 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
     }
 
     if (draggedSubtaskId) {
-      const dragIdx = selectedGoal.subtasks.findIndex(s => s.id === draggedSubtaskId);
+      const dragIdx = subtasks.findIndex(s => s.id === draggedSubtaskId);
       if (insertIdx === dragIdx || insertIdx === dragIdx + 1) {
         setSubtaskDropIndex(null);
         return;
@@ -151,13 +151,14 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
   const handleSubtaskDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!draggedSubtaskId || subtaskDropIndex === null || !selectedGoal.subtasks) {
+    const subtasks = sortedSubtasks;
+    if (!draggedSubtaskId || subtaskDropIndex === null || subtasks.length === 0) {
       setDraggedSubtaskId(null);
       setSubtaskDropIndex(null);
       return;
     }
 
-    const currentIds = selectedGoal.subtasks.map(s => s.id);
+    const currentIds = subtasks.map(s => s.id);
     const fromIdx = currentIds.indexOf(draggedSubtaskId);
     if (fromIdx === -1) { setDraggedSubtaskId(null); setSubtaskDropIndex(null); return; }
 
@@ -177,6 +178,11 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
         await refresh();
       }
     }
+  };
+
+  const handleSubtaskDragEnd = () => {
+    setDraggedSubtaskId(null);
+    setSubtaskDropIndex(null);
   };
 
   const handleAddComment = async () => {
@@ -208,9 +214,10 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleFileDrop = (e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes('application/x-subtask')) return;
     e.preventDefault();
-    setDragOver(false);
+    setFileDragOver(false);
     if (e.dataTransfer.files.length > 0) {
       handleUploadFiles(e.dataTransfer.files);
     }
@@ -245,12 +252,21 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
   const subtasksTotal = selectedGoal.subtasks?.length || 0;
   const sortedSubtasks = selectedGoal.subtasks ? [...selectedGoal.subtasks].sort((a, b) => a.position - b.position) : [];
 
+  const subtaskInsertIndicator = (
+    <div className="h-0.5 bg-zinc-900 dark:bg-zinc-100 rounded-full mx-1 my-0.5" />
+  );
+
   return (
     <div
-      className={`max-w-2xl ${dragOver ? 'ring-2 ring-zinc-400 dark:ring-zinc-500 ring-offset-4 dark:ring-offset-zinc-950' : ''}`}
-      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-      onDragLeave={() => setDragOver(false)}
-      onDrop={handleDrop}
+      className={`max-w-2xl ${fileDragOver ? 'ring-2 ring-zinc-400 dark:ring-zinc-500 ring-offset-4 dark:ring-offset-zinc-950' : ''}`}
+      onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes('application/x-subtask')) {
+          e.preventDefault();
+          setFileDragOver(true);
+        }
+      }}
+      onDragLeave={() => setFileDragOver(false)}
+      onDrop={handleFileDrop}
     >
       {/* Back link */}
       <button
@@ -399,69 +415,69 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
           </div>
         )}
 
-        <div className="space-y-0" onDrop={handleSubtaskDrop} onDragOver={(e) => { if (e.dataTransfer.types.includes('application/x-subtask')) e.preventDefault(); }}>
-          {sortedSubtasks.map((subtask: Subtask) => (
-            <div
-              key={subtask.id}
-              draggable
-              onDragStart={(e) => handleSubtaskDragStart(e, subtask.id)}
-              onDragOver={(e) => handleSubtaskDragOver(e, subtask.id)}
-              onDragEnd={handleSubtaskDragEnd}
-              className={`flex items-center gap-2 group py-2 ${
-                draggedSubtaskId === subtask.id ? 'opacity-30' : ''
-              } ${
-                subtaskDropTarget?.id === subtask.id && subtaskDropTarget.position === 'before'
-                  ? 'border-t-2 border-t-zinc-400 dark:border-t-zinc-500'
-                  : ''
-              } ${
-                subtaskDropTarget?.id === subtask.id && subtaskDropTarget.position === 'after'
-                  ? 'border-b-2 border-b-zinc-400 dark:border-b-zinc-500'
-                  : ''
-              }`}
-            >
-              <span
-                className="text-zinc-300 dark:text-zinc-600 cursor-grab active:cursor-grabbing select-none text-sm flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                onMouseDown={(e) => e.stopPropagation()}
-              >
-                {'\u2807\u2807'}
-              </span>
-              <button
-                onClick={() => handleToggleSubtask(subtask.id, !subtask.done)}
-                className={`w-5 h-5 border flex-shrink-0 flex items-center justify-center text-xs ${
-                  subtask.done ? 'bg-zinc-900 dark:bg-zinc-100 border-zinc-900 dark:border-zinc-100 text-white dark:text-zinc-950' : 'border-zinc-300 dark:border-zinc-600 hover:border-zinc-500 dark:hover:border-zinc-400'
+        <div
+          className="space-y-0"
+          onDragOver={handleSubtaskContainerDragOver}
+          onDrop={handleSubtaskDrop}
+          onDragLeave={(e) => {
+            if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+            setSubtaskDropIndex(null);
+          }}
+        >
+          {sortedSubtasks.map((subtask: Subtask, index: number) => (
+            <div key={subtask.id}>
+              {subtaskDropIndex === index && subtaskInsertIndicator}
+              <div
+                ref={(el) => { if (el) subtaskRefs.current.set(subtask.id, el); }}
+                draggable
+                onDragStart={(e) => handleSubtaskDragStart(e, subtask.id)}
+                onDragEnd={handleSubtaskDragEnd}
+                className={`flex items-center gap-2 group py-2 ${
+                  draggedSubtaskId === subtask.id ? 'opacity-30' : ''
                 }`}
               >
-                {subtask.done && '\u2713'}
-              </button>
-              {editingSubtaskId === subtask.id ? (
-                <input
-                  type="text"
-                  value={editingSubtaskTitle}
-                  onChange={(e) => setEditingSubtaskTitle(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleEditSubtask(subtask.id);
-                    if (e.key === 'Escape') { setEditingSubtaskId(null); setEditingSubtaskTitle(''); }
-                  }}
-                  onBlur={() => handleEditSubtask(subtask.id)}
-                  autoFocus
-                  className="flex-1 px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 rounded focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
-                />
-              ) : (
-                <span
-                  className={`text-sm flex-1 cursor-pointer py-0.5 ${subtask.done ? 'line-through text-zinc-300 dark:text-zinc-600' : 'text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100'}`}
-                  onClick={() => { setEditingSubtaskId(subtask.id); setEditingSubtaskTitle(subtask.title); }}
-                >
-                  {subtask.title}
+                <span className="text-zinc-300 dark:text-zinc-600 cursor-grab active:cursor-grabbing select-none flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <GripVertical className="w-4 h-4" />
                 </span>
-              )}
-              <button
-                onClick={() => handleDeleteSubtask(subtask.id)}
-                className="text-xs text-zinc-300 dark:text-zinc-600 hover:text-red-500 opacity-0 group-hover:opacity-100 p-1"
-              >
-                {'\u2715'}
-              </button>
+                <button
+                  onClick={() => handleToggleSubtask(subtask.id, !subtask.done)}
+                  className={`w-5 h-5 border flex-shrink-0 flex items-center justify-center text-xs ${
+                    subtask.done ? 'bg-zinc-900 dark:bg-zinc-100 border-zinc-900 dark:border-zinc-100 text-white dark:text-zinc-950' : 'border-zinc-300 dark:border-zinc-600 hover:border-zinc-500 dark:hover:border-zinc-400'
+                  }`}
+                >
+                  {subtask.done && '\u2713'}
+                </button>
+                {editingSubtaskId === subtask.id ? (
+                  <input
+                    type="text"
+                    value={editingSubtaskTitle}
+                    onChange={(e) => setEditingSubtaskTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleEditSubtask(subtask.id);
+                      if (e.key === 'Escape') { setEditingSubtaskId(null); setEditingSubtaskTitle(''); }
+                    }}
+                    onBlur={() => handleEditSubtask(subtask.id)}
+                    autoFocus
+                    className="flex-1 px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 rounded focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
+                  />
+                ) : (
+                  <span
+                    className={`text-sm flex-1 cursor-pointer py-0.5 ${subtask.done ? 'line-through text-zinc-300 dark:text-zinc-600' : 'text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100'}`}
+                    onClick={() => { setEditingSubtaskId(subtask.id); setEditingSubtaskTitle(subtask.title); }}
+                  >
+                    {subtask.title}
+                  </span>
+                )}
+                <button
+                  onClick={() => handleDeleteSubtask(subtask.id)}
+                  className="text-xs text-zinc-300 dark:text-zinc-600 hover:text-red-500 opacity-0 group-hover:opacity-100 p-1"
+                >
+                  {'\u2715'}
+                </button>
+              </div>
             </div>
           ))}
+          {subtaskDropIndex === sortedSubtasks.length && subtaskInsertIndicator}
         </div>
 
         <div className="mt-2 flex gap-2">
