@@ -4,7 +4,7 @@ import { api } from '../api';
 import { MarkdownContent } from '../components/MarkdownContent';
 import type { Attachment, Subtask, Comment, BoardMember, Goal } from '../types';
 
-const STATUSES = ['backlog', 'todo', 'in_progress', 'review', 'done'];
+const STATUSES: Goal['status'][] = ['backlog', 'todo', 'in_progress', 'review', 'done'];
 const STATUS_LABELS: Record<string, string> = {
   backlog: 'Backlog',
   todo: 'To Do',
