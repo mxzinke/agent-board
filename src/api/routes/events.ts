@@ -7,7 +7,7 @@ import { addConnection, removeConnection } from '../lib/broadcast';
 
 const eventsRouter = new Hono();
 
-const KEEPALIVE_INTERVAL_MS = 10_000;
+const KEEPALIVE_INTERVAL_MS = 5_000;
 
 /** Format an SSE frame */
 function sseFrame(event: string, data: string): string {
@@ -69,8 +69,9 @@ eventsRouter.get('/boards/:boardId/events', async (c) => {
       // Send initial connected event
       send(sseFrame('board-update', JSON.stringify({ type: 'connected' })));
 
-      // Keepalive every 10s — controller.enqueue() pushes data directly
-      // into the response stream without going through a TransformStream,
+      // Keepalive every 5s — must be shorter than the ~8-10s idle timeout
+      // in the Hetzner LB (TCP proxy-protocol mode). controller.enqueue()
+      // pushes data directly without going through a TransformStream,
       // so each frame is flushed immediately by Bun's HTTP server.
       keepaliveTimer = setInterval(() => {
         try {
