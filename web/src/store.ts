@@ -1,20 +1,14 @@
 import { create } from 'zustand';
 import { api } from './api';
-
-interface User {
-  id: string;
-  username: string;
-  displayName: string;
-  isAgent: boolean;
-}
+import type { User, Board, Goal } from './types';
 
 interface AppState {
   user: User | null;
   token: string | null;
-  boards: any[];
-  currentBoard: any | null;
-  goals: any[];
-  selectedGoal: any | null;
+  boards: Board[];
+  currentBoard: Board | null;
+  goals: Goal[];
+  selectedGoal: Goal | null;
   loading: boolean;
 
   setAuth: (user: User, token: string) => void;
@@ -22,9 +16,9 @@ interface AppState {
   checkAuth: () => Promise<void>;
 
   fetchBoards: () => Promise<void>;
-  setCurrentBoard: (board: any) => void;
+  setCurrentBoard: (board: Board | null) => void;
   fetchGoals: (boardId: string) => Promise<void>;
-  setSelectedGoal: (goal: any | null) => void;
+  setSelectedGoal: (goal: Goal | null) => void;
 
   // Load data from URL on initial page load
   loadFromPath: (path: string) => Promise<void>;

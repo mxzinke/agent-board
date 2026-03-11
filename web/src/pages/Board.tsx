@@ -5,6 +5,7 @@ import { KanbanColumn } from '../components/KanbanColumn';
 import { InviteModal } from '../components/InviteModal';
 import { CreateGoalModal } from '../components/CreateGoalModal';
 import { Crown } from 'lucide-react';
+import type { BoardMember } from '../types';
 
 const STATUSES = [
   { key: 'backlog', label: 'Backlog' },
@@ -28,7 +29,7 @@ export function Board({ navigate }: BoardProps) {
   const [editDescription, setEditDescription] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const currentMembership = currentBoard?.members?.find((m: any) => m.userId === user?.id);
+  const currentMembership = currentBoard?.members?.find((m: BoardMember) => m.userId === user?.id);
   const isOwner = currentMembership?.role === 'owner';
 
   const refreshBoard = async () => {
@@ -42,19 +43,19 @@ export function Board({ navigate }: BoardProps) {
     try {
       await api.removeMember(currentBoard.id, userId);
       await refreshBoard();
-    } catch (e: any) {
-      alert(e.message);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'An error occurred');
     }
   };
 
-  const handleToggleRole = async (member: any) => {
+  const handleToggleRole = async (member: BoardMember) => {
     if (!currentBoard) return;
     const newRole = member.role === 'owner' ? 'member' : 'owner';
     try {
       await api.updateMemberRole(currentBoard.id, member.userId, newRole);
       await refreshBoard();
-    } catch (e: any) {
-      alert(e.message);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'An error occurred');
     }
   };
 
@@ -71,8 +72,8 @@ export function Board({ navigate }: BoardProps) {
       await api.updateBoard(currentBoard.id, { name: editName.trim(), description: editDescription.trim() || undefined });
       await refreshBoard();
       setEditing(false);
-    } catch (e: any) {
-      alert(e.message);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'An error occurred');
     }
   };
 
@@ -83,8 +84,8 @@ export function Board({ navigate }: BoardProps) {
       setCurrentBoard(null);
       await fetchBoards();
       navigate('/');
-    } catch (e: any) {
-      alert(e.message);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'An error occurred');
     }
   };
 
@@ -228,7 +229,7 @@ export function Board({ navigate }: BoardProps) {
 
       {/* Members bar */}
       <div className="flex gap-2 mb-4 text-xs text-zinc-400 dark:text-zinc-500 flex-wrap">
-        {currentBoard?.members?.map((m: any) => (
+        {currentBoard?.members?.map((m: BoardMember) => (
           <div key={m.userId} className="flex items-center gap-1 border border-zinc-100 dark:border-zinc-800 px-2 py-0.5 bg-zinc-50 dark:bg-zinc-900 group">
             <span className="text-xs text-zinc-600 dark:text-zinc-400">
               {m.displayName || m.username}

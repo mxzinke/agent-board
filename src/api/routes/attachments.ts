@@ -69,7 +69,7 @@ attachmentsRouter.get('/goals/:goalId/attachments', async (c) => {
 attachmentsRouter.post('/goals/:goalId/attachments', async (c) => {
   const { sub } = c.get('user');
   const goalId = c.req.param('goalId');
-  await verifyGoalAccess(goalId, sub);
+  const goal = await verifyGoalAccess(goalId, sub);
 
   // Check daily upload limit
   const today = new Date();
@@ -115,8 +115,6 @@ attachmentsRouter.post('/goals/:goalId/attachments', async (c) => {
     // Inline: store as base64 in DB
     data = buffer.toString('base64');
   }
-
-  const goal = await verifyGoalAccess(goalId, sub);
 
   const [attachment] = await db.insert(attachments).values({
     goalId,
@@ -164,8 +162,9 @@ attachmentsRouter.get('/attachments/:id/download', async (c) => {
     throw notFound('File data not found');
   }
 
-  // Force safe content type for non-image downloads to prevent XSS
-  const isImage = attachment.mimeType.startsWith('image/');
+  // Force safe content type for non-image downloads to prevent XSS.
+  // SVG is excluded from inline rendering because SVGs can contain JavaScript.
+  const isImage = attachment.mimeType.startsWith('image/') && attachment.mimeType !== 'image/svg+xml';
   const contentType = isImage ? attachment.mimeType : 'application/octet-stream';
 
   return new Response(new Uint8Array(fileData), {

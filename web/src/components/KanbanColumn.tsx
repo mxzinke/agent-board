@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
+import type { Goal, BoardMember } from '../types';
 
 interface KanbanColumnProps {
   status: string;
   label: string;
-  goals: any[];
-  members?: any[];
+  goals: Goal[];
+  members?: BoardMember[];
   onOpenGoal: (goalId: string) => void;
   onMoveGoal: (goalId: string, newStatus: string) => void;
   onShowNewGoal: () => void;
@@ -66,7 +67,7 @@ export function KanbanColumn({
     }
   };
 
-  const handleDragStart = (e: React.DragEvent, goal: any) => {
+  const handleDragStart = (e: React.DragEvent, goal: Goal) => {
     e.dataTransfer.setData('text/plain', goal.id);
     e.dataTransfer.setData('application/x-status', status);
     e.dataTransfer.effectAllowed = 'move';
@@ -106,7 +107,7 @@ export function KanbanColumn({
             <div className="flex items-start justify-between gap-2">
               <p className="text-sm text-zinc-900 dark:text-zinc-100 font-medium leading-snug">{goal.title}</p>
               {goal.assigneeId && (() => {
-                const member = members?.find((m: any) => m.userId === goal.assigneeId);
+                const member = members?.find((m) => m.userId === goal.assigneeId);
                 if (!member) return null;
                 const name = member.displayName || member.username || '';
                 const initial = name.charAt(0).toUpperCase();

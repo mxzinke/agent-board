@@ -257,6 +257,11 @@ boardsRouter.post('/join',
     if (!invite) throw badRequest('Invalid invite token');
     if (invite.expiresAt && invite.expiresAt < new Date()) throw badRequest('Invite token expired');
 
+    // Check if already a member BEFORE consuming an invite use
+    const [existing] = await db.select().from(boardMembers)
+      .where(and(eq(boardMembers.boardId, invite.boardId), eq(boardMembers.userId, sub))).limit(1);
+    if (existing) throw badRequest('Already a member');
+
     // Atomic increment — prevents race condition on max_uses check
     const [updated] = await db.update(inviteTokens)
       .set({ uses: sql`${inviteTokens.uses} + 1` })
@@ -266,11 +271,6 @@ boardsRouter.post('/join',
       ))
       .returning();
     if (!updated) throw badRequest('Invite token used up');
-
-    // Check if already a member
-    const [existing] = await db.select().from(boardMembers)
-      .where(and(eq(boardMembers.boardId, invite.boardId), eq(boardMembers.userId, sub))).limit(1);
-    if (existing) throw badRequest('Already a member');
 
     await db.insert(boardMembers).values({
       boardId: invite.boardId,

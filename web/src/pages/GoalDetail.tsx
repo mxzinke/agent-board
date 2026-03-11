@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useStore } from '../store';
 import { api } from '../api';
 import { MarkdownContent } from '../components/MarkdownContent';
+import type { Attachment, Subtask, Comment, BoardMember } from '../types';
 
 const STATUSES = ['backlog', 'todo', 'in_progress', 'review', 'done'];
 const STATUS_LABELS: Record<string, string> = {
@@ -25,7 +26,7 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
   const [newComment, setNewComment] = useState('');
   const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
   const [editingSubtaskTitle, setEditingSubtaskTitle] = useState('');
-  const [attachmentsList, setAttachmentsList] = useState<any[]>([]);
+  const [attachmentsList, setAttachmentsList] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [assigneeDropdownOpen, setAssigneeDropdownOpen] = useState(false);
@@ -130,8 +131,8 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
         await api.uploadAttachment(selectedGoal.id, file);
       }
       await loadAttachments();
-    } catch (err: any) {
-      alert(err.message || 'Upload failed');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setUploading(false);
     }
@@ -170,7 +171,7 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
     navigate('/b/' + currentBoard.id);
   };
 
-  const subtasksDone = selectedGoal.subtasks?.filter((s: any) => s.done).length || 0;
+  const subtasksDone = selectedGoal.subtasks?.filter((s: Subtask) => s.done).length || 0;
   const subtasksTotal = selectedGoal.subtasks?.length || 0;
 
   return (
@@ -261,7 +262,7 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
             <span className="flex items-center gap-2">
               {(() => {
                 const assignee = selectedGoal.assigneeId
-                  ? currentBoard.members?.find((m: any) => m.userId === selectedGoal.assigneeId)
+                  ? currentBoard.members?.find((m: BoardMember) => m.userId === selectedGoal.assigneeId)
                   : null;
                 return assignee ? (
                   <>
@@ -290,7 +291,7 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
               >
                 Unassigned
               </button>
-              {currentBoard.members?.map((m: any) => (
+              {currentBoard.members?.map((m: BoardMember) => (
                 <button
                   key={m.userId}
                   type="button"
@@ -328,7 +329,7 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
         )}
 
         <div className="space-y-1">
-          {selectedGoal.subtasks?.map((subtask: any) => (
+          {selectedGoal.subtasks?.map((subtask: Subtask) => (
             <div key={subtask.id} className="flex items-center gap-3 group py-2">
               <button
                 onClick={() => handleToggleSubtask(subtask.id, !subtask.done)}
@@ -406,7 +407,7 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
 
         {attachmentsList.length > 0 ? (
           <div className="space-y-1">
-            {attachmentsList.map((att: any) => (
+            {attachmentsList.map((att: Attachment) => (
               <div key={att.id} className="flex items-center justify-between py-1.5 px-2 border border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 group">
                 <a
                   href={api.downloadAttachment(att.id)}
@@ -452,7 +453,7 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
         </h3>
 
         <div className="space-y-3 mb-4">
-          {selectedGoal.comments?.map((comment: any) => (
+          {selectedGoal.comments?.map((comment: Comment) => (
             <div key={comment.id} className="border-l-2 border-zinc-100 dark:border-zinc-800 pl-3">
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">

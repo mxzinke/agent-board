@@ -20,13 +20,37 @@ function isAllowedWebhookUrl(url: string): boolean {
   }
   if (parsed.protocol !== 'https:') return false;
   const hostname = parsed.hostname.toLowerCase();
-  if (['localhost', '127.0.0.1', '::1', '0.0.0.0'].includes(hostname)) return false;
-  if (hostname.startsWith('10.')) return false;
-  if (hostname.startsWith('192.168.')) return false;
-  if (/^172\.(1[6-9]|2\d|3[01])\./.test(hostname)) return false;
-  if (hostname === '169.254.169.254') return false;
-  if (hostname.startsWith('169.254.')) return false;
-  if (hostname.endsWith('.internal') || hostname.endsWith('.local')) return false;
+
+  // Strip IPv6 brackets for inspection
+  const bare = hostname.startsWith('[') ? hostname.slice(1, -1) : hostname;
+
+  // Block loopback and unspecified
+  if (['localhost', '127.0.0.1', '::1', '0.0.0.0', '::', '0'].includes(bare)) return false;
+
+  // Block IPv4 private ranges
+  if (bare.startsWith('10.')) return false;
+  if (bare.startsWith('192.168.')) return false;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(bare)) return false;
+
+  // Block link-local and metadata
+  if (bare.startsWith('169.254.')) return false;
+
+  // Block IPv4-in-IPv6 mapped addresses (e.g. ::ffff:127.0.0.1, ::ffff:10.0.0.1)
+  if (/^::ffff:/.test(bare)) return false;
+
+  // Block IPv6 private ranges (ULA fc00::/7, link-local fe80::/10)
+  if (/^f[cd]/.test(bare)) return false;
+  if (bare.startsWith('fe80')) return false;
+
+  // Block numeric-only hostnames (decimal IP bypass like 2130706433)
+  if (/^\d+$/.test(bare)) return false;
+
+  // Block octal IP notation (e.g. 0177.0.0.1)
+  if (/^0\d/.test(bare)) return false;
+
+  // Block suspicious TLDs / suffixes
+  if (bare.endsWith('.internal') || bare.endsWith('.local') || bare.endsWith('.localhost')) return false;
+
   return true;
 }
 
