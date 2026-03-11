@@ -4,10 +4,9 @@ import { db } from '../../db';
 import { boardMembers } from '../../db/schema';
 import { eq, and } from 'drizzle-orm';
 import { addConnection, removeConnection } from '../lib/broadcast';
+import { config } from '../../config';
 
 const eventsRouter = new Hono();
-
-const KEEPALIVE_INTERVAL_MS = 5_000;
 
 /** Format an SSE frame */
 function sseFrame(event: string, data: string): string {
@@ -66,20 +65,24 @@ eventsRouter.get('/boards/:boardId/events', async (c) => {
 
       addConnection(boardId, conn);
 
-      // Send initial connected event
-      send(sseFrame('board-update', JSON.stringify({ type: 'connected' })));
+      // Send initial connected event with keepalive config so clients
+      // can auto-tune their heartbeat timeout.
+      send(sseFrame('board-update', JSON.stringify({
+        type: 'connected',
+        keepaliveMs: config.sseKeepaliveMs,
+      })));
 
-      // Keepalive every 5s — must be shorter than the ~8-10s idle timeout
-      // in the Hetzner LB (TCP proxy-protocol mode). controller.enqueue()
-      // pushes data directly without going through a TransformStream,
-      // so each frame is flushed immediately by Bun's HTTP server.
+      // Keepalive — must be shorter than the lowest idle timeout in the
+      // proxy chain. Configurable via SSE_KEEPALIVE_MS env var.
+      // controller.enqueue() pushes data directly without going through
+      // a TransformStream, so each frame is flushed immediately by Bun.
       keepaliveTimer = setInterval(() => {
         try {
           send(sseFrame('keepalive', 'ping'));
         } catch {
           if (keepaliveTimer) clearInterval(keepaliveTimer);
         }
-      }, KEEPALIVE_INTERVAL_MS);
+      }, config.sseKeepaliveMs);
 
       // Cleanup when client disconnects
       c.req.raw.signal.addEventListener('abort', () => {

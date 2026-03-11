@@ -11,4 +11,9 @@ export const config = {
   s3AccessKey: process.env.STORAGE_S3_ACCESS_KEY || '',
   s3SecretKey: process.env.STORAGE_S3_SECRET_KEY || '',
   s3Region: process.env.STORAGE_S3_REGION || 'auto',
+
+  // SSE keepalive interval in milliseconds. Must be shorter than the
+  // lowest idle timeout in the proxy chain (LB → Traefik → pod).
+  // Default 5s works for Hetzner Cloud LB in TCP proxy-protocol mode.
+  sseKeepaliveMs: parseInt(process.env.SSE_KEEPALIVE_MS || '5000'),
 };

@@ -19,7 +19,7 @@ export const useSSEStatus = create<SSEStatusState>((set) => ({
 // ── Constants ───────────────────────────────────────────────────────
 const BACKOFF_BASE_MS = 1_000;
 const BACKOFF_MAX_MS = 30_000;
-const HEARTBEAT_TIMEOUT_MS = 12_000; // server sends keepalive every 5s
+const DEFAULT_HEARTBEAT_TIMEOUT_MS = 12_000; // fallback until server sends keepaliveMs
 
 // ── Hook ────────────────────────────────────────────────────────────
 export function useSSE(boardId: string | null) {
@@ -31,6 +31,9 @@ export function useSSE(boardId: string | null) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastEventRef = useRef<number>(Date.now());
   const heartbeatTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Server-reported keepalive interval — heartbeat timeout = 2.5× this value.
+  // Updated on each 'connected' event so the client auto-tunes itself.
+  const heartbeatTimeoutRef = useRef(DEFAULT_HEARTBEAT_TIMEOUT_MS);
 
   // Refetch the currently-selected goal (if any) and its attachments
   const refreshSelectedGoal = useCallback((disposed: boolean) => {
@@ -67,7 +70,7 @@ export function useSSE(boardId: string | null) {
           setStatus('disconnected');
           scheduleReconnect();
         }
-      }, HEARTBEAT_TIMEOUT_MS);
+      }, heartbeatTimeoutRef.current);
     }
 
     function clearHeartbeat() {
@@ -111,6 +114,10 @@ export function useSSE(boardId: string | null) {
           if (event.type === 'connected') {
             retryRef.current = 0;
             setStatus('connected');
+            // Auto-tune heartbeat timeout from server-reported keepalive interval
+            if (event.keepaliveMs && typeof event.keepaliveMs === 'number') {
+              heartbeatTimeoutRef.current = Math.round(event.keepaliveMs * 2.5);
+            }
             return;
           }
           // Refetch goals on any board change
@@ -160,7 +167,7 @@ export function useSSE(boardId: string | null) {
         !es ||
         es.readyState === EventSource.CLOSED ||
         es.readyState === EventSource.CONNECTING ||
-        staleSince > HEARTBEAT_TIMEOUT_MS;
+        staleSince > heartbeatTimeoutRef.current;
 
       if (connectionDead) {
         // Kill anything lingering
