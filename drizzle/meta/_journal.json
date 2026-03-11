@@ -43,6 +43,13 @@
       "when": 1773219134970,
       "tag": "0005_strong_spiral",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1773223278678,
+      "tag": "0006_wide_makkari",
+      "breakpoints": true
     }
   ]
 }

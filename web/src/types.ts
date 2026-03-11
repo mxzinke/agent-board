@@ -16,6 +16,8 @@ export interface Board {
   updatedAt: string;
   members?: BoardMember[];
   role?: string; // present in list response (joined via boardMembers)
+  isFavorite?: boolean;
+  position?: number;
 }
 
 export interface BoardMember {

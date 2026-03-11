@@ -86,6 +86,13 @@ commentsRouter.post('/goals/:goalId/comments',
       body,
     }).returning();
 
+    // Auto-unarchive on comment activity
+    if (goal.archived) {
+      await db.update(goals)
+        .set({ archived: false, updatedAt: new Date() })
+        .where(eq(goals.id, goalId));
+    }
+
     // Return with author info
     const [user] = await db.select({
       username: users.username,

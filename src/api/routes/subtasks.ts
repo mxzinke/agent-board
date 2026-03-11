@@ -3,11 +3,11 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db } from '../../db';
 import { subtasks, goals, boardMembers } from '../../db/schema';
-import { eq, and, asc } from 'drizzle-orm';
+import { eq, and, asc, inArray } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth';
 import { suspensionMiddleware } from '../middleware/suspension';
 import { rateLimitMiddleware } from '../middleware/rateLimit';
-import { notFound, forbidden } from '../lib/errors';
+import { notFound, forbidden, badRequest } from '../lib/errors';
 import { broadcastBoardEvent } from '../lib/broadcast';
 import { deliverWebhooks } from '../lib/webhookDelivery';
 
@@ -68,6 +68,41 @@ subtasksRouter.post('/goals/:goalId/subtasks',
     deliverWebhooks(goal.boardId, { type: 'subtask-updated', goalId }, sub);
 
     return c.json(subtask, 201);
+  }
+);
+
+// Reorder subtasks
+subtasksRouter.post('/goals/:goalId/subtasks/reorder',
+  zValidator('json', z.object({
+    orderedIds: z.array(z.string().uuid()),
+  })),
+  async (c) => {
+    const { sub } = c.get('user');
+    const goalId = c.req.param('goalId');
+    const { orderedIds } = c.req.valid('json');
+
+    const goal = await requireGoalAccess(goalId, sub);
+
+    // Validate all subtask IDs belong to this goal
+    const existing = await db.select({ id: subtasks.id })
+      .from(subtasks)
+      .where(and(eq(subtasks.goalId, goalId), inArray(subtasks.id, orderedIds)));
+
+    if (existing.length !== orderedIds.length) {
+      throw badRequest('Some subtask IDs are invalid');
+    }
+
+    await db.transaction(async (tx) => {
+      for (let i = 0; i < orderedIds.length; i++) {
+        await tx.update(subtasks)
+          .set({ position: (i + 1) * 1000 })
+          .where(eq(subtasks.id, orderedIds[i]));
+      }
+    });
+
+    broadcastBoardEvent(goal.boardId, { type: 'subtask-updated', goalId });
+
+    return c.json({ ok: true });
   }
 );
 

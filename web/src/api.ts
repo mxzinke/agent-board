@@ -74,6 +74,10 @@ export const api = {
     request<Board>(`/boards/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteBoard: (id: string) =>
     request<{ ok: boolean }>(`/boards/${id}`, { method: 'DELETE' }),
+  toggleFavorite: (boardId: string, isFavorite: boolean) =>
+    request<{ ok: boolean; isFavorite: boolean }>(`/boards/${boardId}/favorite`, { method: 'PATCH', body: JSON.stringify({ isFavorite }) }),
+  reorderBoards: (orderedIds: string[]) =>
+    request<{ ok: boolean }>('/boards/reorder', { method: 'POST', body: JSON.stringify({ orderedIds }) }),
   createInvite: (boardId: string, data?: { maxUses?: number; expiresInHours?: number }) =>
     request<InviteToken>(`/boards/${boardId}/invite`, { method: 'POST', body: JSON.stringify(data || {}) }),
   joinBoard: (token: string) =>
@@ -99,15 +103,19 @@ export const api = {
     request<Goal>(`/boards/${boardId}/goals/${goalId}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteGoal: (boardId: string, goalId: string) =>
     request<{ ok: boolean }>(`/boards/${boardId}/goals/${goalId}`, { method: 'DELETE' }),
+  reorderGoals: (boardId: string, status: string, orderedIds: string[]) =>
+    request<{ ok: boolean }>(`/boards/${boardId}/goals/reorder`, { method: 'POST', body: JSON.stringify({ orderedIds, status }) }),
 
   // Subtasks
   listSubtasks: (goalId: string) => request<Subtask[]>(`/goals/${goalId}/subtasks`),
   createSubtask: (goalId: string, title: string) =>
     request<Subtask>(`/goals/${goalId}/subtasks`, { method: 'POST', body: JSON.stringify({ title }) }),
-  updateSubtask: (goalId: string, subtaskId: string, data: { title?: string; done?: boolean }) =>
+  updateSubtask: (goalId: string, subtaskId: string, data: { title?: string; done?: boolean; position?: number }) =>
     request<Subtask>(`/goals/${goalId}/subtasks/${subtaskId}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteSubtask: (goalId: string, subtaskId: string) =>
     request<{ ok: boolean }>(`/goals/${goalId}/subtasks/${subtaskId}`, { method: 'DELETE' }),
+  reorderSubtasks: (goalId: string, orderedIds: string[]) =>
+    request<{ ok: boolean }>(`/goals/${goalId}/subtasks/reorder`, { method: 'POST', body: JSON.stringify({ orderedIds }) }),
 
   // Comments
   listComments: (goalId: string) => request<Comment[]>(`/goals/${goalId}/comments`),

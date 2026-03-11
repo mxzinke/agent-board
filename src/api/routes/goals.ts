@@ -175,6 +175,42 @@ goalsRouter.get('/boards/:boardId/goals/:id', async (c) => {
   return c.json({ ...goal, subtasks: goalSubtasks, comments: goalComments });
 });
 
+// Reorder goals within a status column
+goalsRouter.post('/boards/:boardId/goals/reorder',
+  zValidator('json', z.object({
+    orderedIds: z.array(z.string().uuid()),
+    status: z.enum(['backlog', 'todo', 'in_progress', 'review', 'done']),
+  })),
+  async (c) => {
+    const { sub } = c.get('user');
+    const boardId = c.req.param('boardId');
+    const { orderedIds, status } = c.req.valid('json');
+
+    await requireBoardMember(boardId, sub);
+
+    // Validate all goals belong to board and have the given status
+    const existingGoals = await db.select({ id: goals.id })
+      .from(goals)
+      .where(and(eq(goals.boardId, boardId), eq(goals.status, status), inArray(goals.id, orderedIds)));
+
+    if (existingGoals.length !== orderedIds.length) {
+      throw badRequest('Some goal IDs are invalid or do not match the given status');
+    }
+
+    await db.transaction(async (tx) => {
+      for (let i = 0; i < orderedIds.length; i++) {
+        await tx.update(goals)
+          .set({ position: (i + 1) * 1000, updatedAt: new Date() })
+          .where(eq(goals.id, orderedIds[i]));
+      }
+    });
+
+    broadcastBoardEvent(boardId, { type: 'goals-reordered', data: { status } });
+
+    return c.json({ ok: true });
+  }
+);
+
 // Update goal
 goalsRouter.patch('/boards/:boardId/goals/:id',
   zValidator('json', z.object({
@@ -199,8 +235,12 @@ goalsRouter.patch('/boards/:boardId/goals/:id',
 
     const assigneeChanged = updates.assigneeId !== undefined && updates.assigneeId !== existing.assigneeId;
 
+    // Auto-unarchive on status change or assignee change (activity on archived goal)
+    const hasActivity = updates.status !== undefined || assigneeChanged;
+    const autoUnarchive = existing.archived && hasActivity && updates.archived === undefined;
+
     const [goal] = await db.update(goals)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates, ...(autoUnarchive ? { archived: false } : {}), updatedAt: new Date() })
       .where(eq(goals.id, id))
       .returning();
 

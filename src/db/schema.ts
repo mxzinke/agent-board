@@ -53,6 +53,8 @@ export const boardMembers = pgTable('board_members', {
   boardId: uuid('board_id').notNull().references(() => boards.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   role: varchar('role', { length: 16 }).notNull().default('member'),
+  isFavorite: boolean('is_favorite').notNull().default(false),
+  position: integer('position').notNull().default(0),
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
 }, (table) => [
   primaryKey({ columns: [table.boardId, table.userId] }),

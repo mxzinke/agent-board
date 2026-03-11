@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db } from '../../db';
 import { boards, boardMembers, inviteTokens, users } from '../../db/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, desc, asc } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth';
 import { suspensionMiddleware } from '../middleware/suspension';
 import { rateLimitMiddleware } from '../middleware/rateLimit';
@@ -24,11 +24,14 @@ boardsRouter.get('/', async (c) => {
       name: boards.name,
       description: boards.description,
       role: boardMembers.role,
+      isFavorite: boardMembers.isFavorite,
+      position: boardMembers.position,
       createdAt: boards.createdAt,
     })
     .from(boardMembers)
     .innerJoin(boards, eq(boards.id, boardMembers.boardId))
-    .where(eq(boardMembers.userId, sub));
+    .where(eq(boardMembers.userId, sub))
+    .orderBy(desc(boardMembers.isFavorite), asc(boardMembers.position), asc(boards.createdAt));
   return c.json(memberBoards);
 });
 
@@ -240,6 +243,49 @@ boardsRouter.post('/:id/invite',
     }).returning();
 
     return c.json({ ...invite, url: `${c.req.url.split('/api')[0]}/join/${token}` }, 201);
+  }
+);
+
+// Toggle board favorite
+boardsRouter.patch('/:id/favorite',
+  zValidator('json', z.object({
+    isFavorite: z.boolean(),
+  })),
+  async (c) => {
+    const { sub } = c.get('user');
+    const id = c.req.param('id');
+    const { isFavorite } = c.req.valid('json');
+
+    const [membership] = await db.select().from(boardMembers)
+      .where(and(eq(boardMembers.boardId, id), eq(boardMembers.userId, sub))).limit(1);
+    if (!membership) throw notFound('Board not found');
+
+    await db.update(boardMembers)
+      .set({ isFavorite })
+      .where(and(eq(boardMembers.boardId, id), eq(boardMembers.userId, sub)));
+
+    return c.json({ ok: true, isFavorite });
+  }
+);
+
+// Reorder boards
+boardsRouter.post('/reorder',
+  zValidator('json', z.object({
+    orderedIds: z.array(z.string().uuid()),
+  })),
+  async (c) => {
+    const { sub } = c.get('user');
+    const { orderedIds } = c.req.valid('json');
+
+    await db.transaction(async (tx) => {
+      for (let i = 0; i < orderedIds.length; i++) {
+        await tx.update(boardMembers)
+          .set({ position: (i + 1) * 1000 })
+          .where(and(eq(boardMembers.boardId, orderedIds[i]), eq(boardMembers.userId, sub)));
+      }
+    });
+
+    return c.json({ ok: true });
   }
 );
 

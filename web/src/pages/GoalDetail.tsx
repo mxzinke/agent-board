@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { GripVertical } from 'lucide-react';
 import { useStore } from '../store';
 import { api } from '../api';
 import { MarkdownContent } from '../components/MarkdownContent';
@@ -30,8 +31,11 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [assigneeDropdownOpen, setAssigneeDropdownOpen] = useState(false);
+  const [draggedSubtaskId, setDraggedSubtaskId] = useState<string | null>(null);
+  const [subtaskDropIndex, setSubtaskDropIndex] = useState<number | null>(null);
   const assigneeDropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const subtaskRefs = useRef<Map<string, HTMLElement>>(new Map());
 
   const refresh = useCallback(async () => {
     if (!currentBoard || !selectedGoal) return;
@@ -109,6 +113,72 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
     await refresh();
   };
 
+  const handleSubtaskDragStart = (e: React.DragEvent, subtaskId: string) => {
+    e.dataTransfer.setData('text/plain', subtaskId);
+    e.dataTransfer.setData('application/x-subtask', 'true');
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggedSubtaskId(subtaskId);
+  };
+
+  const handleSubtaskDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    if (!selectedGoal.subtasks) return;
+
+    let insertIdx = selectedGoal.subtasks.length;
+    for (let i = 0; i < selectedGoal.subtasks.length; i++) {
+      const el = subtaskRefs.current.get(selectedGoal.subtasks[i].id);
+      if (!el) continue;
+      const rect = el.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      if (e.clientY < midY) {
+        insertIdx = i;
+        break;
+      }
+    }
+
+    if (draggedSubtaskId) {
+      const dragIdx = selectedGoal.subtasks.findIndex(s => s.id === draggedSubtaskId);
+      if (insertIdx === dragIdx || insertIdx === dragIdx + 1) {
+        setSubtaskDropIndex(null);
+        return;
+      }
+    }
+    setSubtaskDropIndex(insertIdx);
+  };
+
+  const handleSubtaskDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!draggedSubtaskId || subtaskDropIndex === null || !selectedGoal.subtasks) {
+      setDraggedSubtaskId(null);
+      setSubtaskDropIndex(null);
+      return;
+    }
+
+    const currentIds = selectedGoal.subtasks.map(s => s.id);
+    const fromIdx = currentIds.indexOf(draggedSubtaskId);
+    if (fromIdx === -1) { setDraggedSubtaskId(null); setSubtaskDropIndex(null); return; }
+
+    const newIds = [...currentIds];
+    newIds.splice(fromIdx, 1);
+    const insertAt = subtaskDropIndex > fromIdx ? subtaskDropIndex - 1 : subtaskDropIndex;
+    newIds.splice(insertAt, 0, draggedSubtaskId);
+
+    setDraggedSubtaskId(null);
+    setSubtaskDropIndex(null);
+
+    if (newIds.join(',') !== currentIds.join(',')) {
+      try {
+        await api.reorderSubtasks(selectedGoal.id, newIds);
+        await refresh();
+      } catch {
+        await refresh();
+      }
+    }
+  };
+
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
     await api.createComment(selectedGoal.id, newComment);
@@ -173,6 +243,7 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
 
   const subtasksDone = selectedGoal.subtasks?.filter((s: Subtask) => s.done).length || 0;
   const subtasksTotal = selectedGoal.subtasks?.length || 0;
+  const sortedSubtasks = selectedGoal.subtasks ? [...selectedGoal.subtasks].sort((a, b) => a.position - b.position) : [];
 
   return (
     <div
@@ -328,9 +399,32 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
           </div>
         )}
 
-        <div className="space-y-1">
-          {selectedGoal.subtasks?.map((subtask: Subtask) => (
-            <div key={subtask.id} className="flex items-center gap-3 group py-2">
+        <div className="space-y-0" onDrop={handleSubtaskDrop} onDragOver={(e) => { if (e.dataTransfer.types.includes('application/x-subtask')) e.preventDefault(); }}>
+          {sortedSubtasks.map((subtask: Subtask) => (
+            <div
+              key={subtask.id}
+              draggable
+              onDragStart={(e) => handleSubtaskDragStart(e, subtask.id)}
+              onDragOver={(e) => handleSubtaskDragOver(e, subtask.id)}
+              onDragEnd={handleSubtaskDragEnd}
+              className={`flex items-center gap-2 group py-2 ${
+                draggedSubtaskId === subtask.id ? 'opacity-30' : ''
+              } ${
+                subtaskDropTarget?.id === subtask.id && subtaskDropTarget.position === 'before'
+                  ? 'border-t-2 border-t-zinc-400 dark:border-t-zinc-500'
+                  : ''
+              } ${
+                subtaskDropTarget?.id === subtask.id && subtaskDropTarget.position === 'after'
+                  ? 'border-b-2 border-b-zinc-400 dark:border-b-zinc-500'
+                  : ''
+              }`}
+            >
+              <span
+                className="text-zinc-300 dark:text-zinc-600 cursor-grab active:cursor-grabbing select-none text-sm flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                {'\u2807\u2807'}
+              </span>
               <button
                 onClick={() => handleToggleSubtask(subtask.id, !subtask.done)}
                 className={`w-5 h-5 border flex-shrink-0 flex items-center justify-center text-xs ${

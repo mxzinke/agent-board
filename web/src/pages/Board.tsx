@@ -23,7 +23,6 @@ export function Board({ navigate }: BoardProps) {
   const { currentBoard, setCurrentBoard, goals, archivedGoals, fetchGoals, fetchArchivedGoals, setSelectedGoal, user, fetchBoards } = useStore();
   const [loading, setLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
-  const [showArchive, setShowArchive] = useState(false);
   const [createGoalStatus, setCreateGoalStatus] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState('');
@@ -92,7 +91,10 @@ export function Board({ navigate }: BoardProps) {
 
   useEffect(() => {
     if (currentBoard) {
-      fetchGoals(currentBoard.id).finally(() => setLoading(false));
+      Promise.all([
+        fetchGoals(currentBoard.id),
+        fetchArchivedGoals(currentBoard.id),
+      ]).finally(() => setLoading(false));
     }
   }, [currentBoard?.id]);
 
@@ -119,12 +121,23 @@ export function Board({ navigate }: BoardProps) {
     await fetchGoals(currentBoard.id);
   };
 
-  const handleToggleArchive = async () => {
-    if (!showArchive && currentBoard) {
-      await fetchArchivedGoals(currentBoard.id);
+  const handleReorderGoals = async (status: string, orderedIds: string[]) => {
+    if (!currentBoard) return;
+    // Optimistic update
+    const reordered = [...goals];
+    const statusGoals = orderedIds.map(id => reordered.find(g => g.id === id)!).filter(Boolean);
+    const otherGoals = reordered.filter(g => g.status !== status);
+    statusGoals.forEach((g, i) => { g.position = (i + 1) * 1000; });
+    useStore.setState({ goals: [...otherGoals, ...statusGoals].sort((a, b) => a.position - b.position) });
+
+    try {
+      await api.reorderGoals(currentBoard.id, status, orderedIds);
+    } catch {
+      await fetchGoals(currentBoard.id);
     }
-    setShowArchive(!showArchive);
   };
+
+  // Archived goals are always shown below the board
 
   const handleUnarchive = async (goalId: string) => {
     if (!currentBoard) return;
@@ -208,13 +221,6 @@ export function Board({ navigate }: BoardProps) {
               Delete
             </button>
           )}
-          <button
-            onClick={handleToggleArchive}
-            className={`px-3 py-1.5 text-sm border ${showArchive ? 'border-zinc-400 dark:border-zinc-500 text-zinc-700 dark:text-zinc-300' : 'border-zinc-200 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500'} hover:border-zinc-400 dark:hover:border-zinc-500`}
-            title="Toggle archive"
-          >
-            <Archive className="w-4 h-4 inline" />
-          </button>
           <button
             onClick={() => setShowInvite(true)}
             className="px-3 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-500"
@@ -300,14 +306,15 @@ export function Board({ navigate }: BoardProps) {
             members={currentBoard?.members}
             onOpenGoal={handleOpenGoal}
             onMoveGoal={handleMoveGoal}
+            onReorderGoals={handleReorderGoals}
             onShowNewGoal={() => setCreateGoalStatus(key)}
           />
         ))}
       </div>
 
-      {/* Archive section */}
-      {showArchive && (
-        <div className="mt-6 border-t border-zinc-200 dark:border-zinc-800 pt-4">
+      {/* Archive section — always visible below board */}
+      {archivedGoals.length > 0 && (
+        <div className="mt-8 border-t border-zinc-100 dark:border-zinc-800/50 pt-4">
           <h3 className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wide mb-3 flex items-center gap-2">
             <Archive className="w-3.5 h-3.5" />
             Archived ({archivedGoals.length})
