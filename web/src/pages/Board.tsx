@@ -8,8 +8,8 @@ import { Crown } from 'lucide-react';
 import type { BoardMember, Goal } from '../types';
 
 const STATUSES = [
-  { key: 'backlog', label: 'Backlog' },
-  { key: 'todo', label: 'To Do' },
+  { key: 'backlog', label: 'Open' },
+  { key: 'todo', label: 'Planning' },
   { key: 'in_progress', label: 'In Progress' },
   { key: 'review', label: 'Review' },
   { key: 'done', label: 'Done' },
