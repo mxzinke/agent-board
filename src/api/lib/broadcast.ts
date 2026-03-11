@@ -19,6 +19,7 @@ interface NotifyPayload {
 
 const CHANNEL = 'board_events';
 const RECONNECT_DELAY_MS = 1500;
+const HEALTH_CHECK_INTERVAL_MS = 30_000; // Check every 30s
 
 // Local SSE connections on this pod
 const boardConnections = new Map<string, Set<SSEConnection>>();
@@ -26,9 +27,13 @@ const boardConnections = new Map<string, Set<SSEConnection>>();
 // Dedicated PG connection for LISTEN (not pooled)
 let listener: postgres.Sql | null = null;
 let listenerReady = false;
+let lastListenerActivity = Date.now();
 
 // Shared PG connection for NOTIFY (lightweight, single connection)
 let notifier: postgres.Sql | null = null;
+
+// Health check interval
+let healthCheckTimer: ReturnType<typeof setInterval> | null = null;
 
 function getConnectionString(): string {
   const url = process.env.DATABASE_URL;
@@ -70,6 +75,7 @@ async function setupListener(): Promise<void> {
 
   try {
     await sql.listen(CHANNEL, (payload) => {
+      lastListenerActivity = Date.now();
       try {
         const parsed: NotifyPayload = JSON.parse(payload);
         deliverToLocalConnections(parsed.boardId, parsed.event);
@@ -78,9 +84,12 @@ async function setupListener(): Promise<void> {
       }
     }, () => {
       // onlisten — called when subscription is re-established after reconnect
+      listenerReady = true;
+      lastListenerActivity = Date.now();
       console.log('[broadcast] PG LISTEN re-established on channel:', CHANNEL);
     });
     listenerReady = true;
+    lastListenerActivity = Date.now();
     console.log('[broadcast] PG LISTEN connected on channel:', CHANNEL);
   } catch (err) {
     listenerReady = false;
@@ -110,6 +119,46 @@ function getNotifier(): postgres.Sql {
     });
   }
   return notifier;
+}
+
+/**
+ * Periodic health check for the PG LISTEN connection.
+ * Sends a self-ping via NOTIFY and verifies it is received.
+ * If no activity is detected within the expected window, forces reconnection.
+ */
+function startHealthCheck(): void {
+  if (healthCheckTimer) return;
+
+  healthCheckTimer = setInterval(async () => {
+    if (!listenerReady) return; // Already reconnecting
+
+    const timeSinceActivity = Date.now() - lastListenerActivity;
+
+    // If we haven't seen any activity in 2x the health check interval,
+    // the listener is likely dead. Force reconnection.
+    if (timeSinceActivity > HEALTH_CHECK_INTERVAL_MS * 2) {
+      console.warn(
+        `[broadcast] PG LISTEN health check failed: no activity for ${Math.round(timeSinceActivity / 1000)}s, forcing reconnect`,
+      );
+      listenerReady = false;
+      try {
+        await setupListener();
+      } catch (err) {
+        console.error('[broadcast] Health check reconnection failed:', err);
+        scheduleReconnect();
+      }
+      return;
+    }
+
+    // Send a self-ping to verify the connection is alive
+    try {
+      const sql = getNotifier();
+      await sql.notify(CHANNEL, JSON.stringify({ boardId: '__health__', event: { type: 'goal-updated' } }));
+    } catch (err) {
+      console.warn('[broadcast] Health check NOTIFY failed:', err);
+      // The next health check will detect the lack of activity and reconnect
+    }
+  }, HEALTH_CHECK_INTERVAL_MS);
 }
 
 // --- Public API (same exports as before) ---
@@ -148,8 +197,38 @@ export function broadcastBoardEvent(boardId: string, event: BoardEvent): void {
   });
 }
 
+/** Returns health status of the PG LISTEN connection */
+export function getListenerHealth(): {
+  status: 'healthy' | 'degraded' | 'down';
+  listenerReady: boolean;
+  lastActivityAgo: number;
+  activeConnections: number;
+} {
+  const now = Date.now();
+  const lastActivityAgo = Math.round((now - lastListenerActivity) / 1000);
+
+  let activeConnections = 0;
+  for (const conns of boardConnections.values()) {
+    activeConnections += conns.size;
+  }
+
+  let status: 'healthy' | 'degraded' | 'down';
+  if (!listenerReady) {
+    status = 'down';
+  } else if (lastActivityAgo > HEALTH_CHECK_INTERVAL_MS * 2 / 1000) {
+    status = 'degraded';
+  } else {
+    status = 'healthy';
+  }
+
+  return { status, listenerReady, lastActivityAgo, activeConnections };
+}
+
 // Initialize the LISTEN connection on module load
 setupListener().catch((err) => {
   console.error('[broadcast] Initial LISTEN setup failed:', err);
   scheduleReconnect();
 });
+
+// Start the periodic health check
+startHealthCheck();

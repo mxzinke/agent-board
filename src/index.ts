@@ -20,7 +20,15 @@ app.use('*', cors({
 }));
 
 // Health check
-app.get('/api/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
+import { getListenerHealth } from './api/lib/broadcast';
+app.get('/api/health', (c) => {
+  const listener = getListenerHealth();
+  return c.json({
+    status: listener.status === 'down' ? 'degraded' : 'ok',
+    timestamp: new Date().toISOString(),
+    listener,
+  });
+});
 
 // API routes
 app.route('/api/v1', api);
