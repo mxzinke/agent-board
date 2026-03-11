@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useStore } from '../store';
 import { api } from '../api';
 import { MarkdownContent } from '../components/MarkdownContent';
-import type { Attachment, Subtask, Comment, BoardMember } from '../types';
+import type { Attachment, Subtask, Comment, BoardMember, Goal } from '../types';
 
 const STATUSES = ['backlog', 'todo', 'in_progress', 'review', 'done'];
 const STATUS_LABELS: Record<string, string> = {
@@ -78,7 +78,7 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
     await fetchGoals(currentBoard.id);
   };
 
-  const handleStatusChange = async (status: string) => {
+  const handleStatusChange = async (status: Goal['status']) => {
     await api.updateGoal(currentBoard.id, selectedGoal.id, { status });
     await refresh();
     await fetchGoals(currentBoard.id);

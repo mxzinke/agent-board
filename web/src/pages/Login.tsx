@@ -77,8 +77,8 @@ export function Login() {
       const credential = await startAuthentication({ optionsJSON: options });
       const result = await api.passkeyLoginVerify({ storeKey, credential });
       setAuth(result.user, result.token);
-    } catch (err: any) {
-      setError(err.message || 'Passkey authentication failed');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Passkey authentication failed');
     } finally {
       setPasskeyLoading(false);
     }
@@ -125,8 +125,8 @@ export function Login() {
         const result = await api.login({ username, password });
         setAuth(result.user, result.token);
       }
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong. Please try again.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
       // Reload captcha on failure
       if (isRegister) loadCaptcha(regMode);
     } finally {

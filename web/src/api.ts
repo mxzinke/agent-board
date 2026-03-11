@@ -49,13 +49,17 @@ export const api = {
     request<{ ok: boolean }>('/auth/change-password', { method: 'POST', body: JSON.stringify(data) }),
 
   // Passkeys
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WebAuthn options have complex types managed by @simplewebauthn
   passkeyRegisterOptions: () =>
-    request<Record<string, unknown>>('/auth/passkey/register-options', { method: 'POST' }),
-  passkeyRegisterVerify: (data: { credential: Record<string, unknown>; name?: string }) =>
+    request<any>('/auth/passkey/register-options', { method: 'POST' }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WebAuthn credential types
+  passkeyRegisterVerify: (data: { credential: any; name?: string }) =>
     request<{ id: string }>('/auth/passkey/register-verify', { method: 'POST', body: JSON.stringify(data) }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WebAuthn options have complex types managed by @simplewebauthn
   passkeyLoginOptions: (username?: string) =>
-    request<{ options: Record<string, unknown>; storeKey: string }>('/auth/passkey/login-options', { method: 'POST', body: JSON.stringify({ username }) }),
-  passkeyLoginVerify: (data: { storeKey: string; credential: Record<string, unknown> }) =>
+    request<{ options: any; storeKey: string }>('/auth/passkey/login-options', { method: 'POST', body: JSON.stringify({ username }) }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WebAuthn credential types
+  passkeyLoginVerify: (data: { storeKey: string; credential: any }) =>
     request<{ user: User; token: string }>('/auth/passkey/login-verify', { method: 'POST', body: JSON.stringify(data) }),
   listPasskeys: () => request<Passkey[]>('/auth/passkeys'),
   deletePasskey: (id: string) =>

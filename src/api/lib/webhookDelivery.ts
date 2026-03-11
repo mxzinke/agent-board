@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm';
 interface WebhookEvent {
   type: string;
   goalId?: string;
-  data?: any;
+  data?: Record<string, unknown>;
 }
 
 export async function deliverWebhooks(

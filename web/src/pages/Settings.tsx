@@ -2,24 +2,7 @@ import { useState, useEffect } from 'react';
 import { startRegistration } from '@simplewebauthn/browser';
 import { api } from '../api';
 import { useStore } from '../store';
-
-interface Passkey {
-  id: string;
-  credentialId: string;
-  deviceType: string | null;
-  backedUp: boolean;
-  name: string | null;
-  createdAt: string;
-  lastUsedAt: string | null;
-}
-
-interface ApiKey {
-  id: string;
-  keyPrefix: string;
-  label: string | null;
-  createdAt: string;
-  lastUsedAt: string | null;
-}
+import type { Passkey, ApiKey } from '../types';
 
 export function Settings() {
   const { user } = useStore();
@@ -72,8 +55,8 @@ export function Settings() {
       const token = localStorage.getItem('agent-board-token');
       if (token) setAuth(updated, token);
       setProfileMsg('Profile updated');
-    } catch (err: any) {
-      setProfileMsg(err.message);
+    } catch (err: unknown) {
+      setProfileMsg(err instanceof Error ? err.message : 'An error occurred');
     }
   }
 
@@ -93,8 +76,8 @@ export function Settings() {
       setNewPassword('');
       setConfirmPassword('');
       setPasswordMsg('Password changed');
-    } catch (err: any) {
-      setPasswordMsg(err.message);
+    } catch (err: unknown) {
+      setPasswordMsg(err instanceof Error ? err.message : 'An error occurred');
     }
   }
 
@@ -107,8 +90,8 @@ export function Settings() {
       setPasskeyName('');
       setPasskeyMsg('Passkey registered');
       loadPasskeys();
-    } catch (err: any) {
-      setPasskeyMsg(err.message || 'Registration failed');
+    } catch (err: unknown) {
+      setPasskeyMsg(err instanceof Error ? err.message : 'Registration failed');
     }
   }
 
@@ -116,8 +99,8 @@ export function Settings() {
     try {
       await api.deletePasskey(id);
       loadPasskeys();
-    } catch (err: any) {
-      setPasskeyMsg(err.message);
+    } catch (err: unknown) {
+      setPasskeyMsg(err instanceof Error ? err.message : 'An error occurred');
     }
   }
 
@@ -129,8 +112,8 @@ export function Settings() {
       setNewApiKey(result.key);
       setApiKeyLabel('');
       loadApiKeys();
-    } catch (err: any) {
-      setApiKeyMsg(err.message);
+    } catch (err: unknown) {
+      setApiKeyMsg(err instanceof Error ? err.message : 'An error occurred');
     }
   }
 
@@ -138,8 +121,8 @@ export function Settings() {
     try {
       await api.deleteApiKey(id);
       loadApiKeys();
-    } catch (err: any) {
-      setApiKeyMsg(err.message);
+    } catch (err: unknown) {
+      setApiKeyMsg(err instanceof Error ? err.message : 'An error occurred');
     }
   }
 

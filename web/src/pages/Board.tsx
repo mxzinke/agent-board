@@ -5,7 +5,7 @@ import { KanbanColumn } from '../components/KanbanColumn';
 import { InviteModal } from '../components/InviteModal';
 import { CreateGoalModal } from '../components/CreateGoalModal';
 import { Crown } from 'lucide-react';
-import type { BoardMember } from '../types';
+import type { BoardMember, Goal } from '../types';
 
 const STATUSES = [
   { key: 'backlog', label: 'Backlog' },
@@ -114,7 +114,7 @@ export function Board({ navigate }: BoardProps) {
 
   const handleMoveGoal = async (goalId: string, newStatus: string) => {
     if (!currentBoard) return;
-    await api.updateGoal(currentBoard.id, goalId, { status: newStatus });
+    await api.updateGoal(currentBoard.id, goalId, { status: newStatus as Goal['status'] });
     await fetchGoals(currentBoard.id);
   };
 
@@ -292,7 +292,7 @@ export function Board({ navigate }: BoardProps) {
         />
       )}
 
-      {showInvite && (
+      {showInvite && currentBoard && (
         <InviteModal boardId={currentBoard.id} onClose={() => setShowInvite(false)} />
       )}
     </div>
