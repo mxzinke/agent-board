@@ -493,7 +493,31 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
       </div>
 
       {/* Danger zone */}
-      <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
+      <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4 flex gap-4">
+        {selectedGoal.archived ? (
+          <button
+            onClick={async () => {
+              await api.updateGoal(currentBoard.id, selectedGoal.id, { archived: false });
+              await refresh();
+              await fetchGoals(currentBoard.id);
+            }}
+            className="text-xs text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+          >
+            Unarchive
+          </button>
+        ) : (
+          <button
+            onClick={async () => {
+              await api.updateGoal(currentBoard.id, selectedGoal.id, { archived: true });
+              await refresh();
+              await fetchGoals(currentBoard.id);
+              handleBack();
+            }}
+            className="text-xs text-zinc-300 dark:text-zinc-600 hover:text-zinc-500"
+          >
+            Archive
+          </button>
+        )}
         <button onClick={handleDelete} className="text-xs text-zinc-300 dark:text-zinc-600 hover:text-red-500">
           Delete goal
         </button>

@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db } from '../../db';
 import { goals, boardMembers, subtasks, comments, users } from '../../db/schema';
-import { eq, and, asc, count, inArray } from 'drizzle-orm';
+import { eq, and, asc, count, inArray, lt, sql } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth';
 import { suspensionMiddleware } from '../middleware/suspension';
 import { rateLimitMiddleware } from '../middleware/rateLimit';
@@ -25,15 +25,32 @@ async function requireBoardMember(boardId: string, userId: string) {
   return membership;
 }
 
+// Auto-archive: mark done goals with no activity for 24h as archived
+async function autoArchiveGoals(boardId: string) {
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  await db.update(goals)
+    .set({ archived: true })
+    .where(and(
+      eq(goals.boardId, boardId),
+      eq(goals.status, 'done'),
+      eq(goals.archived, false),
+      lt(goals.updatedAt, cutoff),
+    ));
+}
+
 // List goals for a board
 goalsRouter.get('/boards/:boardId/goals', async (c) => {
   const { sub } = c.get('user');
   const boardId = c.req.param('boardId');
   const status = c.req.query('status');
+  const archived = c.req.query('archived');
   const limit = Math.min(Math.max(parseInt(c.req.query('limit') || '200', 10) || 200, 1), 500);
   const offset = Math.max(parseInt(c.req.query('offset') || '0', 10) || 0, 0);
 
   await requireBoardMember(boardId, sub);
+
+  // Lazily auto-archive on each board load
+  await autoArchiveGoals(boardId);
 
   // Build WHERE conditions
   type GoalStatus = 'backlog' | 'todo' | 'in_progress' | 'review' | 'done';
@@ -46,6 +63,17 @@ goalsRouter.get('/boards/:boardId/goals', async (c) => {
     }
   }
 
+  // Filter by archived status: default is to exclude archived goals
+  if (archived === 'true') {
+    conditions.push(eq(goals.archived, true));
+  } else if (archived === 'only') {
+    // alias for 'true' — fetch only archived
+    conditions.push(eq(goals.archived, true));
+  } else {
+    // Default: exclude archived
+    conditions.push(eq(goals.archived, false));
+  }
+
   const items = await db
     .select({
       id: goals.id,
@@ -55,6 +83,7 @@ goalsRouter.get('/boards/:boardId/goals', async (c) => {
       status: goals.status,
       position: goals.position,
       assigneeId: goals.assigneeId,
+      archived: goals.archived,
       createdBy: goals.createdBy,
       createdAt: goals.createdAt,
       updatedAt: goals.updatedAt,
@@ -154,6 +183,7 @@ goalsRouter.patch('/boards/:boardId/goals/:id',
     status: z.enum(['backlog', 'todo', 'in_progress', 'review', 'done']).optional(),
     position: z.number().int().optional(),
     assigneeId: z.string().uuid().nullable().optional(),
+    archived: z.boolean().optional(),
   })),
   async (c) => {
     const { sub } = c.get('user');

@@ -84,13 +84,18 @@ export const api = {
     request<{ boardId: string; userId: string; role: string }>(`/boards/${boardId}/members/${userId}`, { method: 'PATCH', body: JSON.stringify({ role }) }),
 
   // Goals
-  listGoals: (boardId: string, status?: string) =>
-    request<Goal[]>(`/boards/${boardId}/goals${status ? `?status=${status}` : ''}`),
+  listGoals: (boardId: string, params?: { status?: string; archived?: boolean }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set('status', params.status);
+    if (params?.archived) q.set('archived', 'true');
+    const qs = q.toString();
+    return request<Goal[]>(`/boards/${boardId}/goals${qs ? `?${qs}` : ''}`);
+  },
   createGoal: (boardId: string, data: { title: string; description?: string; status?: string }) =>
     request<Goal>(`/boards/${boardId}/goals`, { method: 'POST', body: JSON.stringify(data) }),
   getGoal: (boardId: string, goalId: string) =>
     request<Goal>(`/boards/${boardId}/goals/${goalId}`),
-  updateGoal: (boardId: string, goalId: string, data: Partial<Pick<Goal, 'title' | 'description' | 'status' | 'position' | 'assigneeId'>>) =>
+  updateGoal: (boardId: string, goalId: string, data: Partial<Pick<Goal, 'title' | 'description' | 'status' | 'position' | 'assigneeId' | 'archived'>>) =>
     request<Goal>(`/boards/${boardId}/goals/${goalId}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteGoal: (boardId: string, goalId: string) =>
     request<{ ok: boolean }>(`/boards/${boardId}/goals/${goalId}`, { method: 'DELETE' }),

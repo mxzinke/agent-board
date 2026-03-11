@@ -78,6 +78,7 @@ export const goals = pgTable('goals', {
   position: integer('position').notNull().default(0),
   assigneeId: uuid('assignee_id').references(() => users.id),
   createdBy: uuid('created_by').notNull().references(() => users.id),
+  archived: boolean('archived').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

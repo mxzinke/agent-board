@@ -35,6 +35,7 @@ export interface Goal {
   status: 'backlog' | 'todo' | 'in_progress' | 'review' | 'done';
   position: number;
   assigneeId: string | null;
+  archived?: boolean;
   createdBy: string;
   createdAt: string;
   updatedAt: string;

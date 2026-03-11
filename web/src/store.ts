@@ -8,6 +8,7 @@ interface AppState {
   boards: Board[];
   currentBoard: Board | null;
   goals: Goal[];
+  archivedGoals: Goal[];
   selectedGoal: Goal | null;
   loading: boolean;
 
@@ -18,6 +19,7 @@ interface AppState {
   fetchBoards: () => Promise<void>;
   setCurrentBoard: (board: Board | null) => void;
   fetchGoals: (boardId: string) => Promise<void>;
+  fetchArchivedGoals: (boardId: string) => Promise<void>;
   setSelectedGoal: (goal: Goal | null) => void;
 
   // Load data from URL on initial page load
@@ -30,6 +32,7 @@ export const useStore = create<AppState>((set, get) => ({
   boards: [],
   currentBoard: null,
   goals: [],
+  archivedGoals: [],
   selectedGoal: null,
   loading: false,
 
@@ -40,7 +43,7 @@ export const useStore = create<AppState>((set, get) => ({
 
   logout: () => {
     localStorage.removeItem('agent-board-token');
-    set({ user: null, token: null, boards: [], currentBoard: null, goals: [], selectedGoal: null });
+    set({ user: null, token: null, boards: [], currentBoard: null, goals: [], archivedGoals: [], selectedGoal: null });
   },
 
   checkAuth: async () => {
@@ -65,6 +68,11 @@ export const useStore = create<AppState>((set, get) => ({
   fetchGoals: async (boardId) => {
     const goals = await api.listGoals(boardId);
     set({ goals });
+  },
+
+  fetchArchivedGoals: async (boardId) => {
+    const archivedGoals = await api.listGoals(boardId, { archived: true });
+    set({ archivedGoals });
   },
 
   setSelectedGoal: (goal) => set({ selectedGoal: goal }),

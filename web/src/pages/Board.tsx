@@ -4,7 +4,7 @@ import { api } from '../api';
 import { KanbanColumn } from '../components/KanbanColumn';
 import { InviteModal } from '../components/InviteModal';
 import { CreateGoalModal } from '../components/CreateGoalModal';
-import { Crown } from 'lucide-react';
+import { Crown, Archive } from 'lucide-react';
 import type { BoardMember, Goal } from '../types';
 
 const STATUSES = [
@@ -20,9 +20,10 @@ interface BoardProps {
 }
 
 export function Board({ navigate }: BoardProps) {
-  const { currentBoard, setCurrentBoard, goals, fetchGoals, setSelectedGoal, user, fetchBoards } = useStore();
+  const { currentBoard, setCurrentBoard, goals, archivedGoals, fetchGoals, fetchArchivedGoals, setSelectedGoal, user, fetchBoards } = useStore();
   const [loading, setLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
   const [createGoalStatus, setCreateGoalStatus] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState('');
@@ -118,6 +119,20 @@ export function Board({ navigate }: BoardProps) {
     await fetchGoals(currentBoard.id);
   };
 
+  const handleToggleArchive = async () => {
+    if (!showArchive && currentBoard) {
+      await fetchArchivedGoals(currentBoard.id);
+    }
+    setShowArchive(!showArchive);
+  };
+
+  const handleUnarchive = async (goalId: string) => {
+    if (!currentBoard) return;
+    await api.updateGoal(currentBoard.id, goalId, { archived: false });
+    await fetchGoals(currentBoard.id);
+    await fetchArchivedGoals(currentBoard.id);
+  };
+
   const handleOpenGoal = async (goalId: string) => {
     if (!currentBoard) return;
     const goal = await api.getGoal(currentBoard.id, goalId);
@@ -193,6 +208,13 @@ export function Board({ navigate }: BoardProps) {
               Delete
             </button>
           )}
+          <button
+            onClick={handleToggleArchive}
+            className={`px-3 py-1.5 text-sm border ${showArchive ? 'border-zinc-400 dark:border-zinc-500 text-zinc-700 dark:text-zinc-300' : 'border-zinc-200 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500'} hover:border-zinc-400 dark:hover:border-zinc-500`}
+            title="Toggle archive"
+          >
+            <Archive className="w-4 h-4 inline" />
+          </button>
           <button
             onClick={() => setShowInvite(true)}
             className="px-3 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-500"
@@ -282,6 +304,47 @@ export function Board({ navigate }: BoardProps) {
           />
         ))}
       </div>
+
+      {/* Archive section */}
+      {showArchive && (
+        <div className="mt-6 border-t border-zinc-200 dark:border-zinc-800 pt-4">
+          <h3 className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+            <Archive className="w-3.5 h-3.5" />
+            Archived ({archivedGoals.length})
+          </h3>
+          {archivedGoals.length === 0 ? (
+            <p className="text-xs text-zinc-300 dark:text-zinc-600">No archived goals</p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {archivedGoals.map((goal) => (
+                <div
+                  key={goal.id}
+                  className="border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 p-3 group"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p
+                      className="text-sm text-zinc-500 dark:text-zinc-400 font-medium leading-snug cursor-pointer hover:text-zinc-700 dark:hover:text-zinc-300"
+                      onClick={() => handleOpenGoal(goal.id)}
+                    >
+                      {goal.title}
+                    </p>
+                    <button
+                      onClick={() => handleUnarchive(goal.id)}
+                      className="text-xs px-2 py-0.5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500 flex-shrink-0"
+                      title="Unarchive"
+                    >
+                      Restore
+                    </button>
+                  </div>
+                  {goal.description && (
+                    <p className="text-xs text-zinc-300 dark:text-zinc-600 mt-1 line-clamp-1">{goal.description}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {createGoalStatus && (
         <CreateGoalModal
