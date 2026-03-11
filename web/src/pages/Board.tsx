@@ -4,7 +4,7 @@ import { api } from '../api';
 import { KanbanColumn } from '../components/KanbanColumn';
 import { InviteModal } from '../components/InviteModal';
 import { CreateGoalModal } from '../components/CreateGoalModal';
-import { Crown, Archive } from 'lucide-react';
+import { Crown, Archive, ChevronRight } from 'lucide-react';
 import type { BoardMember, Goal } from '../types';
 
 const STATUSES = [
@@ -28,6 +28,7 @@ export function Board({ navigate }: BoardProps) {
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   const currentMembership = currentBoard?.members?.find((m: BoardMember) => m.userId === user?.id);
   const isOwner = currentMembership?.role === 'owner';
@@ -312,17 +313,19 @@ export function Board({ navigate }: BoardProps) {
         ))}
       </div>
 
-      {/* Archive section — always visible below board */}
+      {/* Archive section — collapsed by default */}
       {archivedGoals.length > 0 && (
         <div className="mt-8 border-t border-zinc-100 dark:border-zinc-800/50 pt-4">
-          <h3 className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+          <button
+            onClick={() => setShowArchived(!showArchived)}
+            className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wide hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors"
+          >
+            <ChevronRight className={`w-3.5 h-3.5 transition-transform ${showArchived ? 'rotate-90' : ''}`} />
             <Archive className="w-3.5 h-3.5" />
             Archived ({archivedGoals.length})
-          </h3>
-          {archivedGoals.length === 0 ? (
-            <p className="text-xs text-zinc-300 dark:text-zinc-600">No archived goals</p>
-          ) : (
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          </button>
+          {showArchived && (
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 mt-3">
               {archivedGoals.map((goal) => (
                 <div
                   key={goal.id}

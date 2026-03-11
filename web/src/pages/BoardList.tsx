@@ -54,8 +54,9 @@ export function BoardList({ navigate }: BoardListProps) {
     const el = cardRefs.current.get(boardId);
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const midY = rect.top + rect.height / 2;
-    const pos = e.clientY < midY ? 'before' : 'after';
+    // In a grid, use horizontal midpoint to determine before/after in reading order
+    const midX = rect.left + rect.width / 2;
+    const pos = e.clientX < midX ? 'before' : 'after';
     setDropTargetId(boardId);
     setDropPosition(pos);
   };
@@ -157,13 +158,16 @@ export function BoardList({ navigate }: BoardListProps) {
               className={`relative border p-4 text-left cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-500 transition-colors group/card ${
                 draggedBoardId === board.id
                   ? 'opacity-40 border-zinc-300 dark:border-zinc-600'
-                  : dropTargetId === board.id
-                    ? dropPosition === 'before'
-                      ? 'border-t-2 border-t-zinc-900 dark:border-t-zinc-100 border-zinc-200 dark:border-zinc-700'
-                      : 'border-b-2 border-b-zinc-900 dark:border-b-zinc-100 border-zinc-200 dark:border-zinc-700'
-                    : 'border-zinc-200 dark:border-zinc-700'
+                  : 'border-zinc-200 dark:border-zinc-700'
               }`}
             >
+              {/* Drop position indicator */}
+              {dropTargetId === board.id && draggedBoardId && (
+                <div
+                  className="absolute top-0 bottom-0 w-0.5 bg-zinc-900 dark:bg-zinc-100 z-10"
+                  style={dropPosition === 'before' ? { left: -7 } : { right: -7 }}
+                />
+              )}
               <div className="absolute top-2 right-2 flex items-center gap-1">
                 <span
                   onClick={(e) => handleToggleFavorite(e, board.id, !!board.isFavorite)}
