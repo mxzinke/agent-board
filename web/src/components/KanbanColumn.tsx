@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Archive } from 'lucide-react';
 import type { Goal, BoardMember } from '../types';
 
 interface KanbanColumnProps {
@@ -10,6 +10,7 @@ interface KanbanColumnProps {
   onOpenGoal: (goalId: string) => void;
   onMoveGoal: (goalId: string, newStatus: string) => void;
   onReorderGoals: (status: string, orderedIds: string[]) => void;
+  onArchiveGoal: (goalId: string) => void;
   onShowNewGoal: () => void;
 }
 
@@ -43,6 +44,7 @@ export function KanbanColumn({
   onOpenGoal,
   onMoveGoal,
   onReorderGoals,
+  onArchiveGoal,
   onShowNewGoal,
 }: KanbanColumnProps) {
   const [dragOver, setDragOver] = useState(false);
@@ -188,7 +190,7 @@ export function KanbanColumn({
               {goal.description && (
                 <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 line-clamp-2">{goal.description}</p>
               )}
-              {/* Move buttons */}
+              {/* Move & archive buttons */}
               <div className="flex gap-1 mt-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                 {PREV_STATUS[status] && (
                   <button
@@ -206,6 +208,13 @@ export function KanbanColumn({
                     &rarr;
                   </button>
                 )}
+                <button
+                  onClick={(e) => { e.stopPropagation(); onArchiveGoal(goal.id); }}
+                  className="text-xs px-1.5 py-0.5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500 ml-auto"
+                  title="Archive"
+                >
+                  <Archive className="w-3 h-3" />
+                </button>
               </div>
             </div>
           </div>

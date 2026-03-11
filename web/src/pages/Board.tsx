@@ -140,6 +140,13 @@ export function Board({ navigate }: BoardProps) {
 
   // Archived goals are always shown below the board
 
+  const handleArchiveGoal = async (goalId: string) => {
+    if (!currentBoard) return;
+    await api.updateGoal(currentBoard.id, goalId, { archived: true });
+    await fetchGoals(currentBoard.id);
+    await fetchArchivedGoals(currentBoard.id);
+  };
+
   const handleUnarchive = async (goalId: string) => {
     if (!currentBoard) return;
     await api.updateGoal(currentBoard.id, goalId, { archived: false });
@@ -308,6 +315,7 @@ export function Board({ navigate }: BoardProps) {
             onOpenGoal={handleOpenGoal}
             onMoveGoal={handleMoveGoal}
             onReorderGoals={handleReorderGoals}
+            onArchiveGoal={handleArchiveGoal}
             onShowNewGoal={() => setCreateGoalStatus(key)}
           />
         ))}
