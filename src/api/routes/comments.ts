@@ -32,6 +32,8 @@ async function requireGoalAccess(goalId: string, userId: string) {
 commentsRouter.get('/goals/:goalId/comments', async (c) => {
   const { sub } = c.get('user');
   const goalId = c.req.param('goalId');
+  const limit = Math.min(Math.max(parseInt(c.req.query('limit') || '200', 10) || 200, 1), 500);
+  const offset = Math.max(parseInt(c.req.query('offset') || '0', 10) || 0, 0);
 
   await requireGoalAccess(goalId, sub);
 
@@ -50,7 +52,9 @@ commentsRouter.get('/goals/:goalId/comments', async (c) => {
     .from(comments)
     .innerJoin(users, eq(users.id, comments.authorId))
     .where(eq(comments.goalId, goalId))
-    .orderBy(asc(comments.createdAt));
+    .orderBy(asc(comments.createdAt))
+    .limit(limit)
+    .offset(offset);
 
   return c.json(items);
 });

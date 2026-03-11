@@ -2,8 +2,8 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db } from '../../db';
-import { goals, boardMembers, subtasks, comments, users, goalStatusEnum } from '../../db/schema';
-import { eq, and, asc, count } from 'drizzle-orm';
+import { goals, boardMembers, subtasks, comments, users } from '../../db/schema';
+import { eq, and, asc, count, inArray } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth';
 import { suspensionMiddleware } from '../middleware/suspension';
 import { rateLimitMiddleware } from '../middleware/rateLimit';
@@ -30,10 +30,23 @@ goalsRouter.get('/boards/:boardId/goals', async (c) => {
   const { sub } = c.get('user');
   const boardId = c.req.param('boardId');
   const status = c.req.query('status');
+  const limit = Math.min(Math.max(parseInt(c.req.query('limit') || '200', 10) || 200, 1), 500);
+  const offset = Math.max(parseInt(c.req.query('offset') || '0', 10) || 0, 0);
 
   await requireBoardMember(boardId, sub);
 
-  let query = db
+  // Build WHERE conditions
+  type GoalStatus = 'backlog' | 'todo' | 'in_progress' | 'review' | 'done';
+  const validStatuses: GoalStatus[] = ['backlog', 'todo', 'in_progress', 'review', 'done'];
+  const conditions = [eq(goals.boardId, boardId)];
+  if (status) {
+    const statuses = status.split(',').map(s => s.trim()).filter((s): s is GoalStatus => validStatuses.includes(s as GoalStatus));
+    if (statuses.length > 0) {
+      conditions.push(inArray(goals.status, statuses));
+    }
+  }
+
+  const items = await db
     .select({
       id: goals.id,
       boardId: goals.boardId,
@@ -47,17 +60,12 @@ goalsRouter.get('/boards/:boardId/goals', async (c) => {
       updatedAt: goals.updatedAt,
     })
     .from(goals)
-    .where(eq(goals.boardId, boardId))
-    .orderBy(asc(goals.position));
+    .where(and(...conditions))
+    .orderBy(asc(goals.position))
+    .limit(limit)
+    .offset(offset);
 
-  const allGoals = await query;
-
-  // Filter by status if provided
-  const filtered = status
-    ? allGoals.filter(g => status.split(',').includes(g.status))
-    : allGoals;
-
-  return c.json(filtered);
+  return c.json(items);
 });
 
 // Create goal
