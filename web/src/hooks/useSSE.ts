@@ -19,7 +19,7 @@ export const useSSEStatus = create<SSEStatusState>((set) => ({
 // ── Constants ───────────────────────────────────────────────────────
 const BACKOFF_BASE_MS = 1_000;
 const BACKOFF_MAX_MS = 30_000;
-const DEFAULT_HEARTBEAT_TIMEOUT_MS = 12_000; // fallback until server sends keepaliveMs
+const DEFAULT_HEARTBEAT_TIMEOUT_MS = 750_000; // fallback until server sends keepaliveMs (2.5× 300s default)
 
 // ── Hook ────────────────────────────────────────────────────────────
 export function useSSE(boardId: string | null) {

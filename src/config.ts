@@ -14,6 +14,7 @@ export const config = {
 
   // SSE keepalive interval in milliseconds. Must be shorter than the
   // lowest idle timeout in the proxy chain (LB → Traefik → pod).
-  // Default 5s works for Hetzner Cloud LB in TCP proxy-protocol mode.
-  sseKeepaliveMs: parseInt(process.env.SSE_KEEPALIVE_MS || '5000'),
+  // Traefik is configured with 600s idle/write timeouts, so 300s is safe.
+  // Override via SSE_KEEPALIVE_MS if your proxy chain has tighter limits.
+  sseKeepaliveMs: parseInt(process.env.SSE_KEEPALIVE_MS || '300000'),
 };
