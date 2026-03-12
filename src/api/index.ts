@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import auth from './routes/auth';
 import boardsRouter from './routes/boards';
 import goalsRouter from './routes/goals';
-import subtasksRouter from './routes/subtasks';
+import acceptanceCriteriaRouter from './routes/acceptance-criteria';
 import commentsRouter from './routes/comments';
 import webhooksRouter from './routes/webhooks';
 import attachmentsRouter from './routes/attachments';
@@ -14,7 +14,7 @@ api.route('/auth', auth);
 api.route('/', eventsRouter); // /boards/:boardId/events (SSE) — must be before /boards to avoid authMiddleware
 api.route('/boards', boardsRouter);
 api.route('/', goalsRouter); // /boards/:boardId/goals
-api.route('/', subtasksRouter); // /goals/:goalId/subtasks
+api.route('/', acceptanceCriteriaRouter); // /goals/:goalId/acceptance-criteria
 api.route('/', commentsRouter); // /goals/:goalId/comments
 api.route('/', webhooksRouter); // /boards/:boardId/webhooks
 api.route('/', attachmentsRouter); // /goals/:goalId/attachments & /attachments/:id/*

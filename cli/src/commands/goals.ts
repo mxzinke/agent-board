@@ -71,11 +71,11 @@ export function registerGoalCommands(program: Command) {
       console.log(`  ID: ${goal.id}`);
       if (goal.description) console.log(`\n${goal.description}`);
 
-      if (goal.subtasks?.length > 0) {
-        const done = goal.subtasks.filter((s: any) => s.done).length;
-        console.log(`\n  Subtasks (${done}/${goal.subtasks.length}):`);
-        for (const s of goal.subtasks) {
-          console.log(`    ${s.done ? '☑' : '☐'} ${s.title}`);
+      if (goal.acceptanceCriteria?.length > 0) {
+        const met = goal.acceptanceCriteria.filter((c: any) => c.met).length;
+        console.log(`\n  Acceptance Criteria (${met}/${goal.acceptanceCriteria.length} met):`);
+        for (const c of goal.acceptanceCriteria) {
+          console.log(`    ${c.met ? '\u2611' : '\u2610'} ${c.text}`);
         }
       }
 

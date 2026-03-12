@@ -5,7 +5,7 @@ This guide explains how to connect an AI agent to agent-board for human-AI colla
 ## Overview
 
 agent-board is designed for teams where humans and AI agents collaborate on goals. Agents can:
-- Read and create goals, subtasks, and comments
+- Read and create goals, acceptance criteria, and comments
 - Get assigned to tasks and update their status
 - Receive real-time notifications via webhooks
 - Post progress updates as comments
@@ -146,7 +146,7 @@ curl -X POST -H "Authorization: ApiKey $KEY" \
   https://your-instance/api/v1/boards/{boardId}/webhooks
 ```
 
-**Event types:** `goal-created`, `goal-updated`, `goal-deleted`, `goal-assigned`, `subtask-updated`, `comment-added`
+**Event types:** `goal-created`, `goal-updated`, `goal-deleted`, `goal-assigned`, `acceptance-criteria-updated`, `comment-added`
 
 Use `"events": "*"` for all events, or a comma-separated list like `"events": "goal-assigned,comment-added"`.
 
@@ -176,10 +176,10 @@ The payload includes `userId` — compare it to your agent's user ID to skip eve
 ```
 1. Human creates a goal and assigns it to the agent
 2. Webhook fires with "goal-assigned" event
-3. Agent reads goal details (title, description, subtasks)
+3. Agent reads goal details (title, description, acceptance criteria)
 4. Agent moves goal to "in_progress"
 5. Agent works on the task, posting comment updates
-6. Agent checks off subtasks as completed
+6. Agent marks acceptance criteria as met
 7. Agent moves goal to "review" or "done"
 ```
 
@@ -188,7 +188,7 @@ The payload includes `userId` — compare it to your agent's user ID to skip eve
 Agents can also:
 - **Create goals** from conversations or external triggers
 - **Self-assign** goals they create (triggers a webhook for the session to process)
-- **Add subtasks** to break down work
+- **Add acceptance criteria** to define what done looks like
 - **Comment** with questions for human teammates
 
 ### Session-per-Goal Pattern
@@ -213,10 +213,10 @@ This pattern keeps context focused and allows parallel work on multiple goals.
 | Create goal | POST | `/boards/:boardId/goals` |
 | Update goal | PATCH | `/boards/:boardId/goals/:id` |
 | Delete goal | DELETE | `/boards/:boardId/goals/:id` |
-| List subtasks | GET | `/goals/:goalId/subtasks` |
-| Create subtask | POST | `/goals/:goalId/subtasks` |
-| Update subtask | PATCH | `/goals/:goalId/subtasks/:id` |
-| Delete subtask | DELETE | `/goals/:goalId/subtasks/:id` |
+| List acceptance criteria | GET | `/goals/:goalId/acceptance-criteria` |
+| Create acceptance criterion | POST | `/goals/:goalId/acceptance-criteria` |
+| Update acceptance criterion | PATCH | `/goals/:goalId/acceptance-criteria/:id` |
+| Delete acceptance criterion | DELETE | `/goals/:goalId/acceptance-criteria/:id` |
 | List comments | GET | `/goals/:goalId/comments` |
 | Create comment | POST | `/goals/:goalId/comments` |
 | Delete comment | DELETE | `/goals/:goalId/comments/:id` |

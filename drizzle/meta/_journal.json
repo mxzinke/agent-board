@@ -57,6 +57,13 @@
       "when": 1773303785627,
       "tag": "0007_organic_mad_thinker",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1773532800000,
+      "tag": "0008_replace_subtasks_with_acceptance_criteria",
+      "breakpoints": true
     }
   ]
 }

@@ -3,7 +3,7 @@ import { GripVertical } from 'lucide-react';
 import { useStore } from '../store';
 import { api } from '../api';
 import { MarkdownContent } from '../components/MarkdownContent';
-import type { Attachment, Subtask, Comment, BoardMember, Goal } from '../types';
+import type { Attachment, AcceptanceCriterion, Comment, BoardMember, Goal } from '../types';
 
 const STATUSES: Goal['status'][] = ['backlog', 'todo', 'in_progress', 'review', 'done'];
 const STATUS_LABELS: Record<string, string> = {
@@ -23,21 +23,19 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(selectedGoal?.title || '');
   const [description, setDescription] = useState(selectedGoal?.description || '');
-  const [editingCriteria, setEditingCriteria] = useState(false);
-  const [acceptanceCriteria, setAcceptanceCriteria] = useState(selectedGoal?.acceptanceCriteria || '');
-  const [newSubtask, setNewSubtask] = useState('');
+  const [newCriterion, setNewCriterion] = useState('');
   const [newComment, setNewComment] = useState('');
-  const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
-  const [editingSubtaskTitle, setEditingSubtaskTitle] = useState('');
+  const [editingCriterionId, setEditingCriterionId] = useState<string | null>(null);
+  const [editingCriterionText, setEditingCriterionText] = useState('');
   const [attachmentsList, setAttachmentsList] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [fileDragOver, setFileDragOver] = useState(false);
   const [assigneeDropdownOpen, setAssigneeDropdownOpen] = useState(false);
-  const [draggedSubtaskId, setDraggedSubtaskId] = useState<string | null>(null);
-  const [subtaskDropIndex, setSubtaskDropIndex] = useState<number | null>(null);
+  const [draggedCriterionId, setDraggedCriterionId] = useState<string | null>(null);
+  const [criterionDropIndex, setCriterionDropIndex] = useState<number | null>(null);
   const assigneeDropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const subtaskRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const criterionRefs = useRef<Map<string, HTMLElement>>(new Map());
 
   const refresh = useCallback(async () => {
     if (!currentBoard || !selectedGoal) return;
@@ -88,49 +86,49 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
     await fetchGoals(currentBoard.id);
   };
 
-  const handleAddSubtask = async () => {
-    if (!newSubtask.trim()) return;
-    await api.createSubtask(selectedGoal.id, newSubtask);
-    setNewSubtask('');
+  const handleAddCriterion = async () => {
+    if (!newCriterion.trim()) return;
+    await api.createAcceptanceCriterion(selectedGoal.id, newCriterion);
+    setNewCriterion('');
     await refresh();
   };
 
-  const handleToggleSubtask = async (subtaskId: string, done: boolean) => {
-    await api.updateSubtask(selectedGoal.id, subtaskId, { done });
+  const handleToggleCriterion = async (criterionId: string, met: boolean) => {
+    await api.updateAcceptanceCriterion(selectedGoal.id, criterionId, { met });
     await refresh();
   };
 
-  const handleEditSubtask = async (subtaskId: string) => {
-    if (!editingSubtaskTitle.trim()) return;
-    await api.updateSubtask(selectedGoal.id, subtaskId, { title: editingSubtaskTitle.trim() });
-    setEditingSubtaskId(null);
-    setEditingSubtaskTitle('');
+  const handleEditCriterion = async (criterionId: string) => {
+    if (!editingCriterionText.trim()) return;
+    await api.updateAcceptanceCriterion(selectedGoal.id, criterionId, { text: editingCriterionText.trim() });
+    setEditingCriterionId(null);
+    setEditingCriterionText('');
     await refresh();
   };
 
-  const handleDeleteSubtask = async (subtaskId: string) => {
-    await api.deleteSubtask(selectedGoal.id, subtaskId);
+  const handleDeleteCriterion = async (criterionId: string) => {
+    await api.deleteAcceptanceCriterion(selectedGoal.id, criterionId);
     await refresh();
   };
 
-  // Subtask DnD handlers
-  const handleSubtaskDragStart = (e: React.DragEvent, subtaskId: string) => {
-    e.dataTransfer.setData('text/plain', subtaskId);
-    e.dataTransfer.setData('application/x-subtask', 'true');
+  // Acceptance Criteria DnD handlers
+  const handleCriterionDragStart = (e: React.DragEvent, criterionId: string) => {
+    e.dataTransfer.setData('text/plain', criterionId);
+    e.dataTransfer.setData('application/x-criterion', 'true');
     e.dataTransfer.effectAllowed = 'move';
-    setDraggedSubtaskId(subtaskId);
+    setDraggedCriterionId(criterionId);
   };
 
-  const handleSubtaskContainerDragOver = (e: React.DragEvent) => {
-    if (!e.dataTransfer.types.includes('application/x-subtask')) return;
+  const handleCriterionContainerDragOver = (e: React.DragEvent) => {
+    if (!e.dataTransfer.types.includes('application/x-criterion')) return;
     e.preventDefault();
     e.stopPropagation();
     e.dataTransfer.dropEffect = 'move';
 
-    const subtasks = sortedSubtasks;
-    let insertIdx = subtasks.length;
-    for (let i = 0; i < subtasks.length; i++) {
-      const el = subtaskRefs.current.get(subtasks[i].id);
+    const criteria = sortedCriteria;
+    let insertIdx = criteria.length;
+    for (let i = 0; i < criteria.length; i++) {
+      const el = criterionRefs.current.get(criteria[i].id);
       if (!el) continue;
       const rect = el.getBoundingClientRect();
       const midY = rect.top + rect.height / 2;
@@ -140,41 +138,41 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
       }
     }
 
-    if (draggedSubtaskId) {
-      const dragIdx = subtasks.findIndex(s => s.id === draggedSubtaskId);
+    if (draggedCriterionId) {
+      const dragIdx = criteria.findIndex(s => s.id === draggedCriterionId);
       if (insertIdx === dragIdx || insertIdx === dragIdx + 1) {
-        setSubtaskDropIndex(null);
+        setCriterionDropIndex(null);
         return;
       }
     }
-    setSubtaskDropIndex(insertIdx);
+    setCriterionDropIndex(insertIdx);
   };
 
-  const handleSubtaskDrop = async (e: React.DragEvent) => {
+  const handleCriterionDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const subtasks = sortedSubtasks;
-    if (!draggedSubtaskId || subtaskDropIndex === null || subtasks.length === 0) {
-      setDraggedSubtaskId(null);
-      setSubtaskDropIndex(null);
+    const criteria = sortedCriteria;
+    if (!draggedCriterionId || criterionDropIndex === null || criteria.length === 0) {
+      setDraggedCriterionId(null);
+      setCriterionDropIndex(null);
       return;
     }
 
-    const currentIds = subtasks.map(s => s.id);
-    const fromIdx = currentIds.indexOf(draggedSubtaskId);
-    if (fromIdx === -1) { setDraggedSubtaskId(null); setSubtaskDropIndex(null); return; }
+    const currentIds = criteria.map(s => s.id);
+    const fromIdx = currentIds.indexOf(draggedCriterionId);
+    if (fromIdx === -1) { setDraggedCriterionId(null); setCriterionDropIndex(null); return; }
 
     const newIds = [...currentIds];
     newIds.splice(fromIdx, 1);
-    const insertAt = subtaskDropIndex > fromIdx ? subtaskDropIndex - 1 : subtaskDropIndex;
-    newIds.splice(insertAt, 0, draggedSubtaskId);
+    const insertAt = criterionDropIndex > fromIdx ? criterionDropIndex - 1 : criterionDropIndex;
+    newIds.splice(insertAt, 0, draggedCriterionId);
 
-    setDraggedSubtaskId(null);
-    setSubtaskDropIndex(null);
+    setDraggedCriterionId(null);
+    setCriterionDropIndex(null);
 
     if (newIds.join(',') !== currentIds.join(',')) {
       try {
-        await api.reorderSubtasks(selectedGoal.id, newIds);
+        await api.reorderAcceptanceCriteria(selectedGoal.id, newIds);
         await refresh();
       } catch {
         await refresh();
@@ -182,9 +180,9 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
     }
   };
 
-  const handleSubtaskDragEnd = () => {
-    setDraggedSubtaskId(null);
-    setSubtaskDropIndex(null);
+  const handleCriterionDragEnd = () => {
+    setDraggedCriterionId(null);
+    setCriterionDropIndex(null);
   };
 
   const handleAddComment = async () => {
@@ -217,7 +215,7 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
   };
 
   const handleFileDrop = (e: React.DragEvent) => {
-    if (e.dataTransfer.types.includes('application/x-subtask')) return;
+    if (e.dataTransfer.types.includes('application/x-criterion')) return;
     e.preventDefault();
     setFileDragOver(false);
     if (e.dataTransfer.files.length > 0) {
@@ -250,11 +248,11 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
     navigate('/b/' + currentBoard.id);
   };
 
-  const subtasksDone = selectedGoal.subtasks?.filter((s: Subtask) => s.done).length || 0;
-  const subtasksTotal = selectedGoal.subtasks?.length || 0;
-  const sortedSubtasks = selectedGoal.subtasks ? [...selectedGoal.subtasks].sort((a, b) => a.position - b.position) : [];
+  const criteriaMet = selectedGoal.acceptanceCriteria?.filter((c: AcceptanceCriterion) => c.met).length || 0;
+  const criteriaTotal = selectedGoal.acceptanceCriteria?.length || 0;
+  const sortedCriteria = selectedGoal.acceptanceCriteria ? [...selectedGoal.acceptanceCriteria].sort((a, b) => a.position - b.position) : [];
 
-  const subtaskInsertIndicator = (
+  const criterionInsertIndicator = (
     <div className="h-0.5 bg-zinc-900 dark:bg-zinc-100 rounded-full mx-1 my-0.5" />
   );
 
@@ -262,7 +260,7 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
     <div
       className={`max-w-2xl ${fileDragOver ? 'ring-2 ring-zinc-400 dark:ring-zinc-500 ring-offset-4 dark:ring-offset-zinc-950' : ''}`}
       onDragOver={(e) => {
-        if (!e.dataTransfer.types.includes('application/x-subtask')) {
+        if (!e.dataTransfer.types.includes('application/x-criterion')) {
           e.preventDefault();
           setFileDragOver(true);
         }
@@ -317,64 +315,6 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
             </h2>
             {selectedGoal.description && (
               <MarkdownContent className="mt-2">{selectedGoal.description}</MarkdownContent>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Acceptance Criteria */}
-      <div className="mb-6">
-        <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-          <span className="text-sm">&#9745;</span> Acceptance Criteria
-        </h3>
-        {editingCriteria ? (
-          <div className="space-y-2">
-            <textarea
-              value={acceptanceCriteria}
-              onChange={(e) => setAcceptanceCriteria(e.target.value)}
-              onKeyDown={async (e) => {
-                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-                  e.preventDefault();
-                  await api.updateGoal(currentBoard.id, selectedGoal.id, { acceptanceCriteria: acceptanceCriteria.trim() || null });
-                  setEditingCriteria(false);
-                  await refresh();
-                  await fetchGoals(currentBoard.id);
-                }
-              }}
-              rows={4}
-              placeholder="Define what done looks like... (supports markdown)"
-              autoFocus
-              className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100 resize-none"
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={async () => {
-                  await api.updateGoal(currentBoard.id, selectedGoal.id, { acceptanceCriteria: acceptanceCriteria.trim() || null });
-                  setEditingCriteria(false);
-                  await refresh();
-                  await fetchGoals(currentBoard.id);
-                }}
-                className="px-3 py-1.5 text-sm bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950"
-              >
-                Save
-              </button>
-              <button
-                onClick={() => { setEditingCriteria(false); setAcceptanceCriteria(selectedGoal.acceptanceCriteria || ''); }}
-                className="px-3 py-1.5 text-sm text-zinc-400 dark:text-zinc-500"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div
-            onClick={() => { setEditingCriteria(true); setAcceptanceCriteria(selectedGoal.acceptanceCriteria || ''); }}
-            className="cursor-pointer px-3 py-2 border border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
-          >
-            {selectedGoal.acceptanceCriteria ? (
-              <MarkdownContent>{selectedGoal.acceptanceCriteria}</MarkdownContent>
-            ) : (
-              <p className="text-sm text-zinc-300 dark:text-zinc-600 italic">No acceptance criteria defined</p>
             )}
           </div>
         )}
@@ -458,78 +398,78 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
         </div>
       </div>
 
-      {/* Subtasks */}
+      {/* Acceptance Criteria */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
-            Subtasks {subtasksTotal > 0 && `(${subtasksDone}/${subtasksTotal})`}
+            Acceptance Criteria {criteriaTotal > 0 && `(${criteriaMet}/${criteriaTotal} met)`}
           </h3>
         </div>
 
-        {subtasksTotal > 0 && (
+        {criteriaTotal > 0 && (
           <div className="w-full h-1 bg-zinc-100 dark:bg-zinc-800 mb-3">
             <div
               className="h-1 bg-zinc-900 dark:bg-zinc-100 transition-all"
-              style={{ width: `${(subtasksDone / subtasksTotal) * 100}%` }}
+              style={{ width: `${(criteriaMet / criteriaTotal) * 100}%` }}
             />
           </div>
         )}
 
         <div
           className="space-y-0"
-          onDragOver={handleSubtaskContainerDragOver}
-          onDrop={handleSubtaskDrop}
+          onDragOver={handleCriterionContainerDragOver}
+          onDrop={handleCriterionDrop}
           onDragLeave={(e) => {
             if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-            setSubtaskDropIndex(null);
+            setCriterionDropIndex(null);
           }}
         >
-          {sortedSubtasks.map((subtask: Subtask, index: number) => (
-            <div key={subtask.id}>
-              {subtaskDropIndex === index && subtaskInsertIndicator}
+          {sortedCriteria.map((criterion: AcceptanceCriterion, index: number) => (
+            <div key={criterion.id}>
+              {criterionDropIndex === index && criterionInsertIndicator}
               <div
-                ref={(el) => { if (el) subtaskRefs.current.set(subtask.id, el); }}
+                ref={(el) => { if (el) criterionRefs.current.set(criterion.id, el); }}
                 draggable
-                onDragStart={(e) => handleSubtaskDragStart(e, subtask.id)}
-                onDragEnd={handleSubtaskDragEnd}
+                onDragStart={(e) => handleCriterionDragStart(e, criterion.id)}
+                onDragEnd={handleCriterionDragEnd}
                 className={`flex items-center gap-2 group py-2 ${
-                  draggedSubtaskId === subtask.id ? 'opacity-30' : ''
+                  draggedCriterionId === criterion.id ? 'opacity-30' : ''
                 }`}
               >
                 <span className="text-zinc-300 dark:text-zinc-600 cursor-grab active:cursor-grabbing select-none flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                   <GripVertical className="w-4 h-4" />
                 </span>
                 <button
-                  onClick={() => handleToggleSubtask(subtask.id, !subtask.done)}
+                  onClick={() => handleToggleCriterion(criterion.id, !criterion.met)}
                   className={`w-5 h-5 border flex-shrink-0 flex items-center justify-center text-xs ${
-                    subtask.done ? 'bg-zinc-900 dark:bg-zinc-100 border-zinc-900 dark:border-zinc-100 text-white dark:text-zinc-950' : 'border-zinc-300 dark:border-zinc-600 hover:border-zinc-500 dark:hover:border-zinc-400'
+                    criterion.met ? 'bg-zinc-900 dark:bg-zinc-100 border-zinc-900 dark:border-zinc-100 text-white dark:text-zinc-950' : 'border-zinc-300 dark:border-zinc-600 hover:border-zinc-500 dark:hover:border-zinc-400'
                   }`}
                 >
-                  {subtask.done && '\u2713'}
+                  {criterion.met && '\u2713'}
                 </button>
-                {editingSubtaskId === subtask.id ? (
+                {editingCriterionId === criterion.id ? (
                   <input
                     type="text"
-                    value={editingSubtaskTitle}
-                    onChange={(e) => setEditingSubtaskTitle(e.target.value)}
+                    value={editingCriterionText}
+                    onChange={(e) => setEditingCriterionText(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleEditSubtask(subtask.id);
-                      if (e.key === 'Escape') { setEditingSubtaskId(null); setEditingSubtaskTitle(''); }
+                      if (e.key === 'Enter') handleEditCriterion(criterion.id);
+                      if (e.key === 'Escape') { setEditingCriterionId(null); setEditingCriterionText(''); }
                     }}
-                    onBlur={() => handleEditSubtask(subtask.id)}
+                    onBlur={() => handleEditCriterion(criterion.id)}
                     autoFocus
                     className="flex-1 px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 rounded focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
                   />
                 ) : (
                   <span
-                    className={`text-sm flex-1 cursor-pointer py-0.5 ${subtask.done ? 'line-through text-zinc-300 dark:text-zinc-600' : 'text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100'}`}
-                    onClick={() => { setEditingSubtaskId(subtask.id); setEditingSubtaskTitle(subtask.title); }}
+                    className={`text-sm flex-1 cursor-pointer py-0.5 ${criterion.met ? 'line-through text-zinc-300 dark:text-zinc-600' : 'text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100'}`}
+                    onClick={() => { setEditingCriterionId(criterion.id); setEditingCriterionText(criterion.text); }}
                   >
-                    {subtask.title}
+                    {criterion.text}
                   </span>
                 )}
                 <button
-                  onClick={() => handleDeleteSubtask(subtask.id)}
+                  onClick={() => handleDeleteCriterion(criterion.id)}
                   className="text-xs text-zinc-300 dark:text-zinc-600 hover:text-red-500 opacity-0 group-hover:opacity-100 p-1"
                 >
                   {'\u2715'}
@@ -537,19 +477,19 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
               </div>
             </div>
           ))}
-          {subtaskDropIndex === sortedSubtasks.length && subtaskInsertIndicator}
+          {criterionDropIndex === sortedCriteria.length && criterionInsertIndicator}
         </div>
 
         <div className="mt-2 flex gap-2">
           <input
             type="text"
-            placeholder="Add subtask..."
-            value={newSubtask}
-            onChange={(e) => setNewSubtask(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
+            placeholder="Add acceptance criterion..."
+            value={newCriterion}
+            onChange={(e) => setNewCriterion(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddCriterion()}
             className="flex-1 px-2 py-1 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
           />
-          <button onClick={handleAddSubtask} className="px-2 py-1 text-xs bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950">Add</button>
+          <button onClick={handleAddCriterion} className="px-2 py-1 text-xs bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950">Add</button>
         </div>
       </div>
 

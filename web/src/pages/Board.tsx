@@ -99,18 +99,17 @@ export function Board({ navigate }: BoardProps) {
     }
   }, [currentBoard?.id]);
 
-  const handleCreateGoal = async (status: string, data: { title: string; description: string; acceptanceCriteria: string; subtasks: string[] }) => {
+  const handleCreateGoal = async (status: string, data: { title: string; description: string; acceptanceCriteria: string[] }) => {
     if (!data.title.trim() || !currentBoard) return;
     const goal = await api.createGoal(currentBoard.id, {
       title: data.title,
       description: data.description || undefined,
-      acceptanceCriteria: data.acceptanceCriteria || undefined,
       status,
     });
-    // Create subtasks if any
-    for (const subtaskTitle of data.subtasks) {
-      if (subtaskTitle.trim()) {
-        await api.createSubtask(goal.id, subtaskTitle.trim());
+    // Create acceptance criteria if any
+    for (const criterionText of data.acceptanceCriteria) {
+      if (criterionText.trim()) {
+        await api.createAcceptanceCriterion(goal.id, criterionText.trim());
       }
     }
     setCreateGoalStatus(null);
@@ -244,7 +243,7 @@ export function Board({ navigate }: BoardProps) {
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 p-6 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mb-2">Delete Board</h3>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-              Are you sure you want to delete <strong>{currentBoard?.name}</strong>? This action cannot be undone. All goals, subtasks, and comments will be permanently removed.
+              Are you sure you want to delete <strong>{currentBoard?.name}</strong>? This action cannot be undone. All goals, acceptance criteria, and comments will be permanently removed.
             </p>
             <div className="flex gap-2 justify-end">
               <button

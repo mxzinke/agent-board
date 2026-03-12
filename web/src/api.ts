@@ -1,4 +1,4 @@
-import type { User, Board, Goal, Subtask, Comment, Attachment, Webhook, InviteToken, Passkey, ApiKey } from './types';
+import type { User, Board, Goal, AcceptanceCriterion, Comment, Attachment, Webhook, InviteToken, Passkey, ApiKey } from './types';
 
 const BASE = '/api/v1';
 
@@ -95,27 +95,27 @@ export const api = {
     const qs = q.toString();
     return request<Goal[]>(`/boards/${boardId}/goals${qs ? `?${qs}` : ''}`);
   },
-  createGoal: (boardId: string, data: { title: string; description?: string; acceptanceCriteria?: string; status?: string }) =>
+  createGoal: (boardId: string, data: { title: string; description?: string; status?: string }) =>
     request<Goal>(`/boards/${boardId}/goals`, { method: 'POST', body: JSON.stringify(data) }),
   getGoal: (boardId: string, goalId: string) =>
     request<Goal>(`/boards/${boardId}/goals/${goalId}`),
-  updateGoal: (boardId: string, goalId: string, data: Partial<Pick<Goal, 'title' | 'description' | 'acceptanceCriteria' | 'status' | 'position' | 'assigneeId' | 'archived'>>) =>
+  updateGoal: (boardId: string, goalId: string, data: Partial<Pick<Goal, 'title' | 'description' | 'status' | 'position' | 'assigneeId' | 'archived'>>) =>
     request<Goal>(`/boards/${boardId}/goals/${goalId}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteGoal: (boardId: string, goalId: string) =>
     request<{ ok: boolean }>(`/boards/${boardId}/goals/${goalId}`, { method: 'DELETE' }),
   reorderGoals: (boardId: string, status: string, orderedIds: string[]) =>
     request<{ ok: boolean }>(`/boards/${boardId}/goals/reorder`, { method: 'POST', body: JSON.stringify({ orderedIds, status }) }),
 
-  // Subtasks
-  listSubtasks: (goalId: string) => request<Subtask[]>(`/goals/${goalId}/subtasks`),
-  createSubtask: (goalId: string, title: string) =>
-    request<Subtask>(`/goals/${goalId}/subtasks`, { method: 'POST', body: JSON.stringify({ title }) }),
-  updateSubtask: (goalId: string, subtaskId: string, data: { title?: string; done?: boolean; position?: number }) =>
-    request<Subtask>(`/goals/${goalId}/subtasks/${subtaskId}`, { method: 'PATCH', body: JSON.stringify(data) }),
-  deleteSubtask: (goalId: string, subtaskId: string) =>
-    request<{ ok: boolean }>(`/goals/${goalId}/subtasks/${subtaskId}`, { method: 'DELETE' }),
-  reorderSubtasks: (goalId: string, orderedIds: string[]) =>
-    request<{ ok: boolean }>(`/goals/${goalId}/subtasks/reorder`, { method: 'POST', body: JSON.stringify({ orderedIds }) }),
+  // Acceptance Criteria
+  listAcceptanceCriteria: (goalId: string) => request<AcceptanceCriterion[]>(`/goals/${goalId}/acceptance-criteria`),
+  createAcceptanceCriterion: (goalId: string, text: string) =>
+    request<AcceptanceCriterion>(`/goals/${goalId}/acceptance-criteria`, { method: 'POST', body: JSON.stringify({ text }) }),
+  updateAcceptanceCriterion: (goalId: string, criterionId: string, data: { text?: string; met?: boolean; position?: number }) =>
+    request<AcceptanceCriterion>(`/goals/${goalId}/acceptance-criteria/${criterionId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteAcceptanceCriterion: (goalId: string, criterionId: string) =>
+    request<{ ok: boolean }>(`/goals/${goalId}/acceptance-criteria/${criterionId}`, { method: 'DELETE' }),
+  reorderAcceptanceCriteria: (goalId: string, orderedIds: string[]) =>
+    request<{ ok: boolean }>(`/goals/${goalId}/acceptance-criteria/reorder`, { method: 'POST', body: JSON.stringify({ orderedIds }) }),
 
   // Comments
   listComments: (goalId: string) => request<Comment[]>(`/goals/${goalId}/comments`),

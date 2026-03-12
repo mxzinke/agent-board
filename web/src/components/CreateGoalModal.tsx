@@ -5,18 +5,17 @@ interface CreateGoalModalProps {
   status: string;
   statusLabel: string;
   onClose: () => void;
-  onCreate: (data: { title: string; description: string; acceptanceCriteria: string; subtasks: string[] }) => void;
+  onCreate: (data: { title: string; description: string; acceptanceCriteria: string[] }) => void;
 }
 
 export function CreateGoalModal({ status, statusLabel, onClose, onCreate }: CreateGoalModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [acceptanceCriteria, setAcceptanceCriteria] = useState('');
-  const [subtasks, setSubtasks] = useState<string[]>([]);
-  const [newSubtask, setNewSubtask] = useState('');
+  const [criteria, setCriteria] = useState<string[]>([]);
+  const [newCriterion, setNewCriterion] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
-  const subtaskInputRef = useRef<HTMLInputElement>(null);
+  const criterionInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     titleRef.current?.focus();
@@ -38,8 +37,7 @@ export function CreateGoalModal({ status, statusLabel, onClose, onCreate }: Crea
       await onCreate({
         title: title.trim(),
         description: description.trim(),
-        acceptanceCriteria: acceptanceCriteria.trim(),
-        subtasks: subtasks.filter(s => s.trim()),
+        acceptanceCriteria: criteria.filter(c => c.trim()),
       });
     } finally {
       setSubmitting(false);
@@ -53,15 +51,15 @@ export function CreateGoalModal({ status, statusLabel, onClose, onCreate }: Crea
     }
   };
 
-  const addSubtask = () => {
-    if (!newSubtask.trim()) return;
-    setSubtasks([...subtasks, newSubtask.trim()]);
-    setNewSubtask('');
-    subtaskInputRef.current?.focus();
+  const addCriterion = () => {
+    if (!newCriterion.trim()) return;
+    setCriteria([...criteria, newCriterion.trim()]);
+    setNewCriterion('');
+    criterionInputRef.current?.focus();
   };
 
-  const removeSubtask = (index: number) => {
-    setSubtasks(subtasks.filter((_, i) => i !== index));
+  const removeCriterion = (index: number) => {
+    setCriteria(criteria.filter((_, i) => i !== index));
   };
 
   return (
@@ -124,31 +122,20 @@ export function CreateGoalModal({ status, statusLabel, onClose, onCreate }: Crea
 
           {/* Acceptance Criteria */}
           <div>
-            <textarea
-              placeholder="Acceptance criteria (optional, supports markdown)"
-              value={acceptanceCriteria}
-              onChange={(e) => setAcceptanceCriteria(e.target.value)}
-              rows={2}
-              className="w-full px-3 py-2 text-sm border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100 resize-none"
-            />
-          </div>
-
-          {/* Subtasks */}
-          <div>
             <h4 className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2">
-              Subtasks
+              Acceptance Criteria
             </h4>
-            {subtasks.length > 0 && (
+            {criteria.length > 0 && (
               <div className="space-y-1 mb-2">
-                {subtasks.map((subtask, index) => (
+                {criteria.map((criterion, index) => (
                   <div
                     key={index}
                     className="flex items-center gap-2 px-2 py-1.5 border border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 group"
                   >
                     <span className="w-4 h-4 border border-zinc-300 dark:border-zinc-600 flex-shrink-0" />
-                    <span className="text-sm text-zinc-700 dark:text-zinc-300 flex-1">{subtask}</span>
+                    <span className="text-sm text-zinc-700 dark:text-zinc-300 flex-1">{criterion}</span>
                     <button
-                      onClick={() => removeSubtask(index)}
+                      onClick={() => removeCriterion(index)}
                       className="text-xs text-zinc-300 dark:text-zinc-600 hover:text-red-500 opacity-0 group-hover:opacity-100"
                     >
                       {'\u2715'}
@@ -159,21 +146,21 @@ export function CreateGoalModal({ status, statusLabel, onClose, onCreate }: Crea
             )}
             <div className="flex gap-2">
               <input
-                ref={subtaskInputRef}
+                ref={criterionInputRef}
                 type="text"
-                placeholder="Add subtask..."
-                value={newSubtask}
-                onChange={(e) => setNewSubtask(e.target.value)}
+                placeholder="Add acceptance criterion..."
+                value={newCriterion}
+                onChange={(e) => setNewCriterion(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.metaKey && !e.ctrlKey) {
                     e.preventDefault();
-                    addSubtask();
+                    addCriterion();
                   }
                 }}
                 className="flex-1 px-2 py-1 text-sm border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
               />
               <button
-                onClick={addSubtask}
+                onClick={addCriterion}
                 className="px-2 py-1 text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500"
               >
                 <Plus className="w-3.5 h-3.5" />

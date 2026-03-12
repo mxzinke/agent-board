@@ -34,7 +34,6 @@ export interface Goal {
   boardId: string;
   title: string;
   description: string | null;
-  acceptanceCriteria: string | null;
   status: 'backlog' | 'todo' | 'in_progress' | 'review' | 'done';
   position: number;
   assigneeId: string | null;
@@ -42,15 +41,15 @@ export interface Goal {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
-  subtasks?: Subtask[];
+  acceptanceCriteria?: AcceptanceCriterion[];
   comments?: Comment[];
 }
 
-export interface Subtask {
+export interface AcceptanceCriterion {
   id: string;
   goalId: string;
-  title: string;
-  done: boolean;
+  text: string;
+  met: boolean;
   position: number;
   createdAt: string;
 }

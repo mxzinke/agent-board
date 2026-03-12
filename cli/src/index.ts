@@ -4,7 +4,7 @@ import { registerAuthCommands } from './commands/auth';
 import { registerBoardCommands } from './commands/boards';
 import { registerGoalCommands } from './commands/goals';
 import { registerCommentCommands } from './commands/comments';
-import { registerSubtaskCommands } from './commands/subtasks';
+import { registerCriteriaCommands } from './commands/acceptance-criteria';
 
 const program = new Command();
 
@@ -17,6 +17,6 @@ registerAuthCommands(program);
 registerBoardCommands(program);
 registerGoalCommands(program);
 registerCommentCommands(program);
-registerSubtaskCommands(program);
+registerCriteriaCommands(program);
 
 program.parse();

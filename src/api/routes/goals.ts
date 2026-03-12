@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db } from '../../db';
-import { goals, boardMembers, subtasks, comments, users } from '../../db/schema';
+import { goals, boardMembers, acceptanceCriteria, comments, users } from '../../db/schema';
 import { eq, and, asc, count, inArray, lt, sql } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth';
 import { suspensionMiddleware } from '../middleware/suspension';
@@ -80,7 +80,6 @@ goalsRouter.get('/boards/:boardId/goals', async (c) => {
       boardId: goals.boardId,
       title: goals.title,
       description: goals.description,
-      acceptanceCriteria: goals.acceptanceCriteria,
       status: goals.status,
       position: goals.position,
       assigneeId: goals.assigneeId,
@@ -103,14 +102,13 @@ goalsRouter.post('/boards/:boardId/goals',
   zValidator('json', z.object({
     title: z.string().min(1).max(512),
     description: z.string().max(10000).optional(),
-    acceptanceCriteria: z.string().max(10000).optional(),
     status: z.enum(['backlog', 'todo', 'in_progress', 'review', 'done']).optional(),
     assigneeId: z.string().uuid().optional(),
   })),
   async (c) => {
     const { sub } = c.get('user');
     const boardId = c.req.param('boardId');
-    const { title, description, acceptanceCriteria, status, assigneeId } = c.req.valid('json');
+    const { title, description, status, assigneeId } = c.req.valid('json');
 
     await requireBoardMember(boardId, sub);
 
@@ -128,7 +126,6 @@ goalsRouter.post('/boards/:boardId/goals',
       boardId,
       title,
       description,
-      acceptanceCriteria,
       status: status || 'backlog',
       position: maxPos + 1000,
       assigneeId,
@@ -142,7 +139,7 @@ goalsRouter.post('/boards/:boardId/goals',
   }
 );
 
-// Get goal detail with subtasks and comments
+// Get goal detail with acceptance criteria and comments
 goalsRouter.get('/boards/:boardId/goals/:id', async (c) => {
   const { sub } = c.get('user');
   const boardId = c.req.param('boardId');
@@ -154,9 +151,9 @@ goalsRouter.get('/boards/:boardId/goals/:id', async (c) => {
     .where(and(eq(goals.id, id), eq(goals.boardId, boardId))).limit(1);
   if (!goal) throw notFound('Goal not found');
 
-  const goalSubtasks = await db.select().from(subtasks)
-    .where(eq(subtasks.goalId, id))
-    .orderBy(asc(subtasks.position));
+  const goalAcceptanceCriteria = await db.select().from(acceptanceCriteria)
+    .where(eq(acceptanceCriteria.goalId, id))
+    .orderBy(asc(acceptanceCriteria.position));
 
   const goalComments = await db
     .select({
@@ -175,7 +172,7 @@ goalsRouter.get('/boards/:boardId/goals/:id', async (c) => {
     .where(eq(comments.goalId, id))
     .orderBy(asc(comments.createdAt));
 
-  return c.json({ ...goal, subtasks: goalSubtasks, comments: goalComments });
+  return c.json({ ...goal, acceptanceCriteria: goalAcceptanceCriteria, comments: goalComments });
 });
 
 // Reorder goals within a status column
@@ -219,7 +216,6 @@ goalsRouter.patch('/boards/:boardId/goals/:id',
   zValidator('json', z.object({
     title: z.string().min(1).max(512).optional(),
     description: z.string().max(10000).optional(),
-    acceptanceCriteria: z.string().max(10000).nullable().optional(),
     status: z.enum(['backlog', 'todo', 'in_progress', 'review', 'done']).optional(),
     position: z.number().int().optional(),
     assigneeId: z.string().uuid().nullable().optional(),

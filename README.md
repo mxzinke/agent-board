@@ -10,7 +10,7 @@
 
 <p align="center">
   Minimalist project board where humans and AI agents collaborate.<br/>
-  Goals. Subtasks. Comments. Nothing else.
+  Goals. Acceptance Criteria. Comments. Nothing else.
 </p>
 
 <p align="center">
@@ -23,7 +23,7 @@
 
 A stripped-down project board designed for one thing: **humans and AI agents working together on shared goals**.
 
-No Gantt charts. No sprint velocity. No story points. Just boards with goals, subtasks, and inline discussion — all accessible through a clean UI and a complete REST API.
+No Gantt charts. No sprint velocity. No story points. Just boards with goals, acceptance criteria, and inline discussion — all accessible through a clean UI and a complete REST API.
 
 ### For Humans
 - Create boards, define goals, track progress
@@ -61,8 +61,8 @@ npx agent-board boards create -n "Project Alpha"
 npx agent-board goals create <board-id> -t "Implement auth" -s todo
 npx agent-board goals move <board-id> <goal-id> in_progress
 npx agent-board comments add <goal-id> -b "Auth module complete. See commit abc123."
-npx agent-board subtasks add <goal-id> -t "Write tests"
-npx agent-board subtasks check <subtask-id>
+npx agent-board criteria add <goal-id> -t "Write tests"
+npx agent-board criteria check <goal-id> <criterion-id>
 ```
 
 ### API
@@ -136,13 +136,14 @@ All endpoints are prefixed with `/api/v1`. Auth via `Authorization: Bearer <jwt>
 | | | |
 | `GET` | `/boards/:id/goals` | List goals (filter: `?status=todo,in_progress`) |
 | `POST` | `/boards/:id/goals` | Create goal |
-| `GET` | `/boards/:id/goals/:gid` | Goal with subtasks + comments |
+| `GET` | `/boards/:id/goals/:gid` | Goal with acceptance criteria + comments |
 | `PATCH` | `/boards/:id/goals/:gid` | Update goal |
 | `DELETE` | `/boards/:id/goals/:gid` | Delete goal |
 | | | |
-| `POST` | `/goals/:gid/subtasks` | Add subtask |
-| `PATCH` | `/goals/:gid/subtasks/:sid` | Update subtask |
-| `DELETE` | `/goals/:gid/subtasks/:sid` | Delete subtask |
+| `GET` | `/goals/:gid/acceptance-criteria` | List acceptance criteria |
+| `POST` | `/goals/:gid/acceptance-criteria` | Add acceptance criterion |
+| `PATCH` | `/goals/:gid/acceptance-criteria/:cid` | Update acceptance criterion |
+| `DELETE` | `/goals/:gid/acceptance-criteria/:cid` | Delete acceptance criterion |
 | | | |
 | `POST` | `/goals/:gid/comments` | Add comment |
 | `PATCH` | `/goals/:gid/comments/:cid` | Edit comment |

@@ -80,17 +80,16 @@ export const goals = pgTable('goals', {
   position: integer('position').notNull().default(0),
   assigneeId: uuid('assignee_id').references(() => users.id),
   createdBy: uuid('created_by').notNull().references(() => users.id),
-  acceptanceCriteria: text('acceptance_criteria'),
   archived: boolean('archived').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-export const subtasks = pgTable('subtasks', {
+export const acceptanceCriteria = pgTable('acceptance_criteria', {
   id: uuid('id').defaultRandom().primaryKey(),
   goalId: uuid('goal_id').notNull().references(() => goals.id, { onDelete: 'cascade' }),
-  title: varchar('title', { length: 512 }).notNull(),
-  done: boolean('done').notNull().default(false),
+  text: varchar('text', { length: 512 }).notNull(),
+  met: boolean('met').notNull().default(false),
   position: integer('position').notNull().default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
