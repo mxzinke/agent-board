@@ -61,5 +61,5 @@ export default {
   fetch: app.fetch,
   // Disable idle timeout for SSE connections — Bun's default is 10s which
   // kills long-lived streams before the first keepalive (300s) arrives.
-  idleTimeout: 255, // seconds (Bun max)
+  idleTimeout: 0, // 0 = disabled (255s max wouldn't cover 300s keepalive)
 };
