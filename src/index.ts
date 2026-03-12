@@ -59,4 +59,7 @@ console.log(`🚀 agent-board running on port ${port}`);
 export default {
   port,
   fetch: app.fetch,
+  // Disable idle timeout for SSE connections — Bun's default is 10s which
+  // kills long-lived streams before the first keepalive (300s) arrives.
+  idleTimeout: 255, // seconds (Bun max)
 };
