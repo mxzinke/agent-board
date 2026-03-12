@@ -34,6 +34,7 @@ export interface Goal {
   boardId: string;
   title: string;
   description: string | null;
+  acceptanceCriteria: string | null;
   status: 'backlog' | 'todo' | 'in_progress' | 'review' | 'done';
   position: number;
   assigneeId: string | null;

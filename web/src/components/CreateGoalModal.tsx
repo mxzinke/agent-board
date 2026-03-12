@@ -5,12 +5,13 @@ interface CreateGoalModalProps {
   status: string;
   statusLabel: string;
   onClose: () => void;
-  onCreate: (data: { title: string; description: string; subtasks: string[] }) => void;
+  onCreate: (data: { title: string; description: string; acceptanceCriteria: string; subtasks: string[] }) => void;
 }
 
 export function CreateGoalModal({ status, statusLabel, onClose, onCreate }: CreateGoalModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [acceptanceCriteria, setAcceptanceCriteria] = useState('');
   const [subtasks, setSubtasks] = useState<string[]>([]);
   const [newSubtask, setNewSubtask] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -37,6 +38,7 @@ export function CreateGoalModal({ status, statusLabel, onClose, onCreate }: Crea
       await onCreate({
         title: title.trim(),
         description: description.trim(),
+        acceptanceCriteria: acceptanceCriteria.trim(),
         subtasks: subtasks.filter(s => s.trim()),
       });
     } finally {
@@ -116,6 +118,17 @@ export function CreateGoalModal({ status, statusLabel, onClose, onCreate }: Crea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
+              className="w-full px-3 py-2 text-sm border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100 resize-none"
+            />
+          </div>
+
+          {/* Acceptance Criteria */}
+          <div>
+            <textarea
+              placeholder="Acceptance criteria (optional, supports markdown)"
+              value={acceptanceCriteria}
+              onChange={(e) => setAcceptanceCriteria(e.target.value)}
+              rows={2}
               className="w-full px-3 py-2 text-sm border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100 resize-none"
             />
           </div>

@@ -99,11 +99,12 @@ export function Board({ navigate }: BoardProps) {
     }
   }, [currentBoard?.id]);
 
-  const handleCreateGoal = async (status: string, data: { title: string; description: string; subtasks: string[] }) => {
+  const handleCreateGoal = async (status: string, data: { title: string; description: string; acceptanceCriteria: string; subtasks: string[] }) => {
     if (!data.title.trim() || !currentBoard) return;
     const goal = await api.createGoal(currentBoard.id, {
       title: data.title,
       description: data.description || undefined,
+      acceptanceCriteria: data.acceptanceCriteria || undefined,
       status,
     });
     // Create subtasks if any

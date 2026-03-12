@@ -23,6 +23,8 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(selectedGoal?.title || '');
   const [description, setDescription] = useState(selectedGoal?.description || '');
+  const [editingCriteria, setEditingCriteria] = useState(false);
+  const [acceptanceCriteria, setAcceptanceCriteria] = useState(selectedGoal?.acceptanceCriteria || '');
   const [newSubtask, setNewSubtask] = useState('');
   const [newComment, setNewComment] = useState('');
   const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
@@ -315,6 +317,64 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
             </h2>
             {selectedGoal.description && (
               <MarkdownContent className="mt-2">{selectedGoal.description}</MarkdownContent>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Acceptance Criteria */}
+      <div className="mb-6">
+        <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+          <span className="text-sm">&#9745;</span> Acceptance Criteria
+        </h3>
+        {editingCriteria ? (
+          <div className="space-y-2">
+            <textarea
+              value={acceptanceCriteria}
+              onChange={(e) => setAcceptanceCriteria(e.target.value)}
+              onKeyDown={async (e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                  e.preventDefault();
+                  await api.updateGoal(currentBoard.id, selectedGoal.id, { acceptanceCriteria: acceptanceCriteria.trim() || null });
+                  setEditingCriteria(false);
+                  await refresh();
+                  await fetchGoals(currentBoard.id);
+                }
+              }}
+              rows={4}
+              placeholder="Define what done looks like... (supports markdown)"
+              autoFocus
+              className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100 resize-none"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={async () => {
+                  await api.updateGoal(currentBoard.id, selectedGoal.id, { acceptanceCriteria: acceptanceCriteria.trim() || null });
+                  setEditingCriteria(false);
+                  await refresh();
+                  await fetchGoals(currentBoard.id);
+                }}
+                className="px-3 py-1.5 text-sm bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => { setEditingCriteria(false); setAcceptanceCriteria(selectedGoal.acceptanceCriteria || ''); }}
+                className="px-3 py-1.5 text-sm text-zinc-400 dark:text-zinc-500"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div
+            onClick={() => { setEditingCriteria(true); setAcceptanceCriteria(selectedGoal.acceptanceCriteria || ''); }}
+            className="cursor-pointer px-3 py-2 border border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
+          >
+            {selectedGoal.acceptanceCriteria ? (
+              <MarkdownContent>{selectedGoal.acceptanceCriteria}</MarkdownContent>
+            ) : (
+              <p className="text-sm text-zinc-300 dark:text-zinc-600 italic">No acceptance criteria defined</p>
             )}
           </div>
         )}

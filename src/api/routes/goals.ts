@@ -80,6 +80,7 @@ goalsRouter.get('/boards/:boardId/goals', async (c) => {
       boardId: goals.boardId,
       title: goals.title,
       description: goals.description,
+      acceptanceCriteria: goals.acceptanceCriteria,
       status: goals.status,
       position: goals.position,
       assigneeId: goals.assigneeId,
@@ -102,13 +103,14 @@ goalsRouter.post('/boards/:boardId/goals',
   zValidator('json', z.object({
     title: z.string().min(1).max(512),
     description: z.string().max(10000).optional(),
+    acceptanceCriteria: z.string().max(10000).optional(),
     status: z.enum(['backlog', 'todo', 'in_progress', 'review', 'done']).optional(),
     assigneeId: z.string().uuid().optional(),
   })),
   async (c) => {
     const { sub } = c.get('user');
     const boardId = c.req.param('boardId');
-    const { title, description, status, assigneeId } = c.req.valid('json');
+    const { title, description, acceptanceCriteria, status, assigneeId } = c.req.valid('json');
 
     await requireBoardMember(boardId, sub);
 
@@ -126,6 +128,7 @@ goalsRouter.post('/boards/:boardId/goals',
       boardId,
       title,
       description,
+      acceptanceCriteria,
       status: status || 'backlog',
       position: maxPos + 1000,
       assigneeId,
@@ -216,6 +219,7 @@ goalsRouter.patch('/boards/:boardId/goals/:id',
   zValidator('json', z.object({
     title: z.string().min(1).max(512).optional(),
     description: z.string().max(10000).optional(),
+    acceptanceCriteria: z.string().max(10000).nullable().optional(),
     status: z.enum(['backlog', 'todo', 'in_progress', 'review', 'done']).optional(),
     position: z.number().int().optional(),
     assigneeId: z.string().uuid().nullable().optional(),
