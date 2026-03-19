@@ -7,8 +7,8 @@ import type { Attachment, AcceptanceCriterion, Comment, BoardMember, Goal } from
 
 const STATUSES: Goal['status'][] = ['backlog', 'todo', 'in_progress', 'review', 'done'];
 const STATUS_LABELS: Record<string, string> = {
-  backlog: 'Backlog',
-  todo: 'To Do',
+  backlog: 'Open',
+  todo: 'Planning',
   in_progress: 'In Progress',
   review: 'Review',
   done: 'Done',

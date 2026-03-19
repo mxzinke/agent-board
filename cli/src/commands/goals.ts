@@ -9,6 +9,14 @@ const STATUS_SYMBOLS: Record<string, string> = {
   done: '●',
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  backlog: 'Open',
+  todo: 'Planning',
+  in_progress: 'In Progress',
+  review: 'Review',
+  done: 'Done',
+};
+
 export function registerGoalCommands(program: Command) {
   const goals = program.command('goals').description('Manage goals');
 
@@ -33,7 +41,7 @@ export function registerGoalCommands(program: Command) {
 
       console.log('');
       for (const [status, statusGoals] of Object.entries(grouped)) {
-        console.log(`  ${STATUS_SYMBOLS[status] || '○'} ${status.toUpperCase().replace('_', ' ')}`);
+        console.log(`  ${STATUS_SYMBOLS[status] || '○'} ${STATUS_LABELS[status] || status.toUpperCase().replace('_', ' ')}`);
         for (const g of statusGoals) {
           console.log(`    ${g.id.slice(0, 8)}  ${g.title}`);
         }
@@ -58,7 +66,7 @@ export function registerGoalCommands(program: Command) {
       });
       console.log(`Goal created: ${goal.id}`);
       console.log(`  Title: ${goal.title}`);
-      console.log(`  Status: ${goal.status}`);
+      console.log(`  Status: ${STATUS_LABELS[goal.status] || goal.status}`);
     });
 
   goals
@@ -67,7 +75,7 @@ export function registerGoalCommands(program: Command) {
     .action(async (boardId, goalId) => {
       const goal = await request<any>(`/boards/${boardId}/goals/${goalId}`);
       console.log(`\n${STATUS_SYMBOLS[goal.status] || '○'} ${goal.title}`);
-      console.log(`  Status: ${goal.status}`);
+      console.log(`  Status: ${STATUS_LABELS[goal.status] || goal.status}`);
       console.log(`  ID: ${goal.id}`);
       if (goal.description) console.log(`\n${goal.description}`);
 
@@ -114,7 +122,7 @@ export function registerGoalCommands(program: Command) {
         method: 'PATCH',
         body: JSON.stringify(updates),
       });
-      console.log(`Goal updated: ${goal.title} [${goal.status}]`);
+      console.log(`Goal updated: ${goal.title} [${STATUS_LABELS[goal.status] || goal.status}]`);
     });
 
   goals
@@ -125,7 +133,7 @@ export function registerGoalCommands(program: Command) {
         method: 'PATCH',
         body: JSON.stringify({ status }),
       });
-      console.log(`${goal.title} → ${goal.status}`);
+      console.log(`${goal.title} → ${STATUS_LABELS[goal.status] || goal.status}`);
     });
 
   goals

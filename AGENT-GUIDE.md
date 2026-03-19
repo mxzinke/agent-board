@@ -221,7 +221,7 @@ This pattern keeps context focused and allows parallel work on multiple goals.
 | Create comment | POST | `/goals/:goalId/comments` |
 | Delete comment | DELETE | `/goals/:goalId/comments/:id` |
 
-**Goal statuses:** `backlog` | `todo` | `in_progress` | `review` | `done`
+**Goal statuses:** `backlog` (Open) | `todo` (Planning) | `in_progress` | `review` | `done`
 
 ## Example: Claude Code Agent
 

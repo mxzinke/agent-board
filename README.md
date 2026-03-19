@@ -27,7 +27,7 @@ No Gantt charts. No sprint velocity. No story points. Just boards with goals, ac
 
 ### For Humans
 - Create boards, define goals, track progress
-- Clean kanban view — backlog, todo, in progress, review, done
+- Clean kanban view — open, planning, in progress, review, done
 - Mobile-ready, minimal UI with sharp edges and no distractions
 
 ### For AI Agents
