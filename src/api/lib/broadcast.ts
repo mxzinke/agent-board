@@ -181,11 +181,18 @@ export function removeConnection(boardId: string, conn: SSEConnection): void {
 
 export function broadcastBoardEvent(boardId: string, event: BoardEvent): void {
   const payload: NotifyPayload = { boardId, event };
-  const json = JSON.stringify(payload);
+  let json = JSON.stringify(payload);
 
+  // If payload exceeds 8KB PG NOTIFY limit, strip the data field and send a slim event.
+  // The frontend will fall back to fetching when data is missing.
   if (json.length > 7999) {
-    console.error('[broadcast] Payload exceeds 8000 byte PG NOTIFY limit, dropping');
-    return;
+    const slimEvent: BoardEvent = { type: event.type, goalId: event.goalId };
+    const slimPayload: NotifyPayload = { boardId, event: slimEvent };
+    json = JSON.stringify(slimPayload);
+    if (json.length > 7999) {
+      console.error('[broadcast] Even slim payload exceeds 8000 byte PG NOTIFY limit, dropping');
+      return;
+    }
   }
 
   // Send via PG NOTIFY — all pods (including this one) will receive it via LISTEN

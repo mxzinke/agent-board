@@ -24,6 +24,9 @@ const DEFAULT_HEARTBEAT_TIMEOUT_MS = 750_000; // fallback until server sends kee
 // ── Hook ────────────────────────────────────────────────────────────
 export function useSSE(boardId: string | null) {
   const fetchGoals = useStore((s) => s.fetchGoals);
+  const applyGoalCreated = useStore((s) => s.applyGoalCreated);
+  const applyGoalUpdated = useStore((s) => s.applyGoalUpdated);
+  const applyGoalDeleted = useStore((s) => s.applyGoalDeleted);
   const setStatus = useSSEStatus((s) => s.setStatus);
 
   const esRef = useRef<EventSource | null>(null);
@@ -118,12 +121,59 @@ export function useSSE(boardId: string | null) {
             if (event.keepaliveMs && typeof event.keepaliveMs === 'number') {
               heartbeatTimeoutRef.current = Math.round(event.keepaliveMs * 2.5);
             }
+            // Full sync on (re)connect to catch anything missed
+            fetchGoals(boardId!);
             return;
           }
-          // Refetch goals on any board change
-          fetchGoals(boardId!);
 
-          // If the updated goal is currently selected, refresh it
+          // Apply granular patches from SSE payload when data is available.
+          // Fall back to full refetch when the backend stripped data (8KB limit).
+          const goal = event.data?.goal;
+
+          switch (event.type) {
+            case 'goal-created':
+              if (goal) {
+                applyGoalCreated(goal);
+              } else {
+                fetchGoals(boardId!);
+              }
+              break;
+
+            case 'goal-updated':
+            case 'goal-assigned':
+              if (goal) {
+                applyGoalUpdated(goal);
+              } else {
+                fetchGoals(boardId!);
+              }
+              break;
+
+            case 'goal-deleted':
+              if (event.goalId) {
+                applyGoalDeleted(event.goalId);
+              } else {
+                fetchGoals(boardId!);
+              }
+              break;
+
+            case 'goals-reordered':
+              // Reorder requires full list — debounce via fetchGoals
+              fetchGoals(boardId!);
+              break;
+
+            case 'acceptance-criteria-updated':
+            case 'comment-added':
+              // These don't affect the goal list — only the detail view.
+              // refreshSelectedGoal below handles it.
+              break;
+
+            default:
+              // Unknown event type — safe fallback
+              fetchGoals(boardId!);
+              break;
+          }
+
+          // If the updated goal is currently selected, refresh its detail view
           const { selectedGoal } = useStore.getState();
           if (selectedGoal && event.goalId === selectedGoal.id) {
             refreshSelectedGoal(disposed);
@@ -210,5 +260,5 @@ export function useSSE(boardId: string | null) {
       if (esRef.current) { esRef.current.close(); esRef.current = null; }
       setStatus('disconnected');
     };
-  }, [boardId, fetchGoals, setStatus, refreshSelectedGoal]);
+  }, [boardId, fetchGoals, applyGoalCreated, applyGoalUpdated, applyGoalDeleted, setStatus, refreshSelectedGoal]);
 }

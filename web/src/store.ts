@@ -22,6 +22,11 @@ interface AppState {
   fetchArchivedGoals: (boardId: string) => Promise<void>;
   setSelectedGoal: (goal: Goal | null) => void;
 
+  // SSE patch methods — apply granular updates without refetching
+  applyGoalCreated: (goal: Goal) => void;
+  applyGoalUpdated: (goal: Goal) => void;
+  applyGoalDeleted: (goalId: string) => void;
+
   // Load data from URL on initial page load
   loadFromPath: (path: string) => Promise<void>;
 }
@@ -76,6 +81,36 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   setSelectedGoal: (goal) => set({ selectedGoal: goal }),
+
+  applyGoalCreated: (goal) => {
+    const { goals } = get();
+    // Avoid duplicates (e.g. if we also created this goal locally)
+    if (goals.some((g) => g.id === goal.id)) return;
+    // Insert in position-sorted order
+    const updated = [...goals, goal].sort((a, b) => a.position - b.position);
+    set({ goals: updated });
+  },
+
+  applyGoalUpdated: (goal) => {
+    const { goals, selectedGoal } = get();
+    const updated = goals.map((g) => (g.id === goal.id ? { ...g, ...goal } : g));
+    const patch: Partial<AppState> = { goals: updated };
+    // Also update selectedGoal if it's the same goal (preserve detail fields like comments/AC)
+    if (selectedGoal && selectedGoal.id === goal.id) {
+      patch.selectedGoal = { ...selectedGoal, ...goal };
+    }
+    set(patch);
+  },
+
+  applyGoalDeleted: (goalId) => {
+    const { goals, selectedGoal } = get();
+    const updated = goals.filter((g) => g.id !== goalId);
+    const patch: Partial<AppState> = { goals: updated };
+    if (selectedGoal && selectedGoal.id === goalId) {
+      patch.selectedGoal = null;
+    }
+    set(patch);
+  },
 
   loadFromPath: async (path) => {
     // Parse URL and load appropriate data

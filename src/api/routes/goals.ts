@@ -132,7 +132,7 @@ goalsRouter.post('/boards/:boardId/goals',
       createdBy: sub,
     }).returning();
 
-    broadcastBoardEvent(boardId, { type: 'goal-created', goalId: goal.id });
+    broadcastBoardEvent(boardId, { type: 'goal-created', goalId: goal.id, data: { goal } });
     deliverWebhooks(boardId, { type: 'goal-created', goalId: goal.id, data: goal }, sub);
 
     return c.json(goal, 201);
@@ -245,10 +245,10 @@ goalsRouter.patch('/boards/:boardId/goals/:id',
       .returning();
 
     if (assigneeChanged) {
-      broadcastBoardEvent(boardId, { type: 'goal-assigned', goalId: id, data: { assigneeId: goal.assigneeId } });
+      broadcastBoardEvent(boardId, { type: 'goal-assigned', goalId: id, data: { goal } });
       deliverWebhooks(boardId, { type: 'goal-assigned', goalId: id, data: { assigneeId: goal.assigneeId } }, sub);
     } else {
-      broadcastBoardEvent(boardId, { type: 'goal-updated', goalId: id });
+      broadcastBoardEvent(boardId, { type: 'goal-updated', goalId: id, data: { goal } });
       deliverWebhooks(boardId, { type: 'goal-updated', goalId: id, data: goal }, sub);
     }
 
