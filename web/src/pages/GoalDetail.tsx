@@ -577,6 +577,77 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
                 </span>
               </div>
               <MarkdownContent>{comment.body}</MarkdownContent>
+              {comment.attachments && comment.attachments.length > 0 && (
+                <div className="mt-2 space-y-2">
+                  {comment.attachments.map((att: Attachment) => {
+                    const isImage = att.mimeType.startsWith('image/');
+                    const downloadUrl = api.downloadAttachment(att.id);
+                    if (isImage) {
+                      return (
+                        <div key={att.id} className="inline-block">
+                          <a
+                            href={downloadUrl}
+                            target="_blank"
+                            rel="noopener"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              const token = localStorage.getItem('agent-board-token');
+                              fetch(downloadUrl, {
+                                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                              }).then(r => r.blob()).then(blob => {
+                                window.open(URL.createObjectURL(blob), '_blank');
+                              });
+                            }}
+                          >
+                            <img
+                              src={downloadUrl}
+                              alt={att.filename}
+                              className="max-w-sm max-h-64 border border-zinc-200 dark:border-zinc-700 cursor-pointer hover:opacity-90 transition-opacity"
+                              onError={(e) => {
+                                // If direct src fails (auth required), fetch with token
+                                const token = localStorage.getItem('agent-board-token');
+                                if (token) {
+                                  fetch(downloadUrl, {
+                                    headers: { 'Authorization': `Bearer ${token}` },
+                                  }).then(r => r.blob()).then(blob => {
+                                    (e.target as HTMLImageElement).src = URL.createObjectURL(blob);
+                                  });
+                                }
+                              }}
+                            />
+                          </a>
+                          <span className="block text-xs text-zinc-400 dark:text-zinc-500 mt-1">{att.filename}</span>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div key={att.id} className="inline-flex items-center gap-2 py-1.5 px-2 border border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
+                        <a
+                          href={downloadUrl}
+                          className="text-sm text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-200 truncate"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            const token = localStorage.getItem('agent-board-token');
+                            fetch(downloadUrl, {
+                              headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                            }).then(r => r.blob()).then(blob => {
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = att.filename;
+                              a.click();
+                              URL.revokeObjectURL(url);
+                            });
+                          }}
+                        >
+                          {att.filename}
+                        </a>
+                        <span className="text-xs text-zinc-400 dark:text-zinc-500">{formatFileSize(att.size)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           ))}
         </div>
