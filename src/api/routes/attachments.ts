@@ -114,7 +114,8 @@ attachmentsRouter.post('/goals/:goalId/attachments', async (c) => {
   const filename = file.name || 'unnamed';
   const mimeType = file.type || 'application/octet-stream';
 
-  if (!ALLOWED_MIME_TYPES.has(mimeType)) {
+  const baseMimeType = mimeType.split(';')[0].trim();
+  if (!ALLOWED_MIME_TYPES.has(baseMimeType)) {
     throw badRequest(`File type '${mimeType}' is not allowed`);
   }
 
