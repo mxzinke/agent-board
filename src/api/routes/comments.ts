@@ -2,8 +2,8 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db } from '../../db';
-import { comments, goals, boardMembers, users } from '../../db/schema';
-import { eq, and, asc, gte, count } from 'drizzle-orm';
+import { comments, goals, boardMembers, users, attachments } from '../../db/schema';
+import { eq, and, asc, gte, count, sql } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth';
 import { suspensionMiddleware } from '../middleware/suspension';
 import { rateLimitMiddleware } from '../middleware/rateLimit';
@@ -56,7 +56,40 @@ commentsRouter.get('/goals/:goalId/comments', async (c) => {
     .limit(limit)
     .offset(offset);
 
-  return c.json(items);
+  // Fetch attachments linked to these comments
+  const commentIds = items.map((c) => c.id);
+  let commentAttachments: Record<string, { id: string; filename: string; mimeType: string; size: number; createdAt: Date }[]> = {};
+  if (commentIds.length > 0) {
+    const allAttachments = await db.select({
+      id: attachments.id,
+      commentId: attachments.commentId,
+      filename: attachments.filename,
+      mimeType: attachments.mimeType,
+      size: attachments.size,
+      createdAt: attachments.createdAt,
+    }).from(attachments)
+      .where(and(eq(attachments.goalId, goalId), sql`${attachments.commentId} IS NOT NULL`));
+
+    for (const a of allAttachments) {
+      if (a.commentId) {
+        if (!commentAttachments[a.commentId]) commentAttachments[a.commentId] = [];
+        commentAttachments[a.commentId].push({
+          id: a.id,
+          filename: a.filename,
+          mimeType: a.mimeType,
+          size: a.size,
+          createdAt: a.createdAt,
+        });
+      }
+    }
+  }
+
+  const result = items.map((item) => ({
+    ...item,
+    attachments: commentAttachments[item.id] || [],
+  }));
+
+  return c.json(result);
 });
 
 // Create comment

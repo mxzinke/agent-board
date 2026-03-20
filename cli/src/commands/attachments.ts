@@ -42,7 +42,8 @@ export function registerAttachmentCommands(program: Command) {
   attachments
     .command('upload <goalId> <filePath>')
     .description('Upload a file attachment to a goal')
-    .action(async (goalId, filePath) => {
+    .option('--comment <commentId>', 'Link attachment to a specific comment')
+    .action(async (goalId, filePath, opts) => {
       const resolved = resolve(filePath);
       if (!existsSync(resolved)) {
         console.error(`File not found: ${resolved}`);
@@ -60,9 +61,13 @@ export function registerAttachmentCommands(program: Command) {
 
       const formData = new FormData();
       formData.append('file', file);
+      if (opts.comment) {
+        formData.append('commentId', opts.comment);
+      }
 
       const result = await uploadFile<Attachment>(`/goals/${goalId}/attachments`, formData);
-      console.log(`Uploaded: ${result.filename} (${result.id})`);
+      const commentInfo = opts.comment ? ` (linked to comment ${opts.comment})` : '';
+      console.log(`Uploaded: ${result.filename} (${result.id})${commentInfo}`);
     });
 
   attachments

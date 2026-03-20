@@ -117,6 +117,7 @@ export const webhooks = pgTable('webhooks', {
 export const attachments = pgTable('attachments', {
   id: uuid('id').defaultRandom().primaryKey(),
   goalId: uuid('goal_id').notNull().references(() => goals.id, { onDelete: 'cascade' }),
+  commentId: uuid('comment_id').references(() => comments.id, { onDelete: 'set null' }),
   uploadedBy: uuid('uploaded_by').notNull().references(() => users.id, { onDelete: 'cascade' }),
   filename: text('filename').notNull(),
   mimeType: text('mime_type').notNull(),

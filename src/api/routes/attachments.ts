@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { db } from '../../db';
-import { attachments, goals, boardMembers } from '../../db/schema';
+import { attachments, goals, boardMembers, comments } from '../../db/schema';
 import { eq, and, sql, gte } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth';
 import { suspensionMiddleware } from '../middleware/suspension';
@@ -58,6 +58,7 @@ attachmentsRouter.get('/goals/:goalId/attachments', async (c) => {
     filename: attachments.filename,
     mimeType: attachments.mimeType,
     size: attachments.size,
+    commentId: attachments.commentId,
     uploadedBy: attachments.uploadedBy,
     createdAt: attachments.createdAt,
   }).from(attachments).where(eq(attachments.goalId, goalId));
@@ -90,6 +91,19 @@ attachmentsRouter.post('/goals/:goalId/attachments', async (c) => {
     throw badRequest('No file provided');
   }
 
+  // Optional comment association
+  const commentIdRaw = formData.get('commentId');
+  let commentId: string | null = null;
+  if (commentIdRaw && typeof commentIdRaw === 'string' && commentIdRaw.trim()) {
+    // Verify the comment exists and belongs to this goal
+    const [comment] = await db.select({ id: comments.id })
+      .from(comments)
+      .where(and(eq(comments.id, commentIdRaw.trim()), eq(comments.goalId, goalId)))
+      .limit(1);
+    if (!comment) throw badRequest('Comment not found or does not belong to this goal');
+    commentId = comment.id;
+  }
+
   // Check file size
   const maxBytes = config.maxUploadSizeMB * 1024 * 1024;
   if (file.size > maxBytes) {
@@ -118,6 +132,7 @@ attachmentsRouter.post('/goals/:goalId/attachments', async (c) => {
 
   const [attachment] = await db.insert(attachments).values({
     goalId,
+    commentId,
     uploadedBy: sub,
     filename,
     mimeType,
@@ -130,6 +145,7 @@ attachmentsRouter.post('/goals/:goalId/attachments', async (c) => {
     filename: attachments.filename,
     mimeType: attachments.mimeType,
     size: attachments.size,
+    commentId: attachments.commentId,
     createdAt: attachments.createdAt,
   });
 
@@ -211,6 +227,34 @@ attachmentsRouter.delete('/attachments/:id', async (c) => {
   deliverWebhooks(goal.boardId, { type: 'attachment-deleted', goalId: attachment.goalId }, sub);
 
   return c.json({ ok: true });
+});
+
+// List attachments for a specific comment
+attachmentsRouter.get('/goals/:goalId/comments/:commentId/attachments', async (c) => {
+  const { sub } = c.get('user');
+  const goalId = c.req.param('goalId');
+  const commentId = c.req.param('commentId');
+  await verifyGoalAccess(goalId, sub);
+
+  // Verify comment belongs to goal
+  const [comment] = await db.select({ id: comments.id })
+    .from(comments)
+    .where(and(eq(comments.id, commentId), eq(comments.goalId, goalId)))
+    .limit(1);
+  if (!comment) throw notFound('Comment not found');
+
+  const files = await db.select({
+    id: attachments.id,
+    filename: attachments.filename,
+    mimeType: attachments.mimeType,
+    size: attachments.size,
+    commentId: attachments.commentId,
+    uploadedBy: attachments.uploadedBy,
+    createdAt: attachments.createdAt,
+  }).from(attachments)
+    .where(and(eq(attachments.goalId, goalId), eq(attachments.commentId, commentId)));
+
+  return c.json(files);
 });
 
 export default attachmentsRouter;
