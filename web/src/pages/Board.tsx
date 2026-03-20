@@ -2,10 +2,27 @@ import { useEffect, useState } from 'react';
 import { useStore } from '../store';
 import { api } from '../api';
 import { KanbanColumn } from '../components/KanbanColumn';
+import { ListView } from '../components/ListView';
 import { InviteModal } from '../components/InviteModal';
 import { CreateGoalModal } from '../components/CreateGoalModal';
-import { Crown, Archive, ChevronRight } from 'lucide-react';
+import { Crown, Archive, ChevronRight, LayoutGrid, List } from 'lucide-react';
 import type { BoardMember, Goal } from '../types';
+
+type ViewMode = 'kanban' | 'list';
+
+function getViewPreference(boardId: string): ViewMode {
+  try {
+    return (localStorage.getItem(`board-view-${boardId}`) as ViewMode) || 'kanban';
+  } catch {
+    return 'kanban';
+  }
+}
+
+function setViewPreference(boardId: string, mode: ViewMode) {
+  try {
+    localStorage.setItem(`board-view-${boardId}`, mode);
+  } catch { /* ignore */ }
+}
 
 const STATUSES = [
   { key: 'backlog', label: 'Open' },
@@ -29,6 +46,14 @@ export function Board({ navigate }: BoardProps) {
   const [editDescription, setEditDescription] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>(() =>
+    currentBoard ? getViewPreference(currentBoard.id) : 'kanban'
+  );
+
+  const handleViewToggle = (mode: ViewMode) => {
+    setViewMode(mode);
+    if (currentBoard) setViewPreference(currentBoard.id, mode);
+  };
 
   const currentMembership = currentBoard?.members?.find((m: BoardMember) => m.userId === user?.id);
   const isOwner = currentMembership?.role === 'owner';
@@ -303,23 +328,61 @@ export function Board({ navigate }: BoardProps) {
         ))}
       </div>
 
-      {/* Kanban board */}
-      <div className="flex gap-3 overflow-x-auto pb-4">
-        {STATUSES.map(({ key, label }) => (
-          <KanbanColumn
-            key={key}
-            status={key}
-            label={label}
-            goals={goals.filter((g) => g.status === key)}
-            members={currentBoard?.members}
-            onOpenGoal={handleOpenGoal}
-            onMoveGoal={handleMoveGoal}
-            onReorderGoals={handleReorderGoals}
-            onArchiveGoal={handleArchiveGoal}
-            onShowNewGoal={() => setCreateGoalStatus(key)}
-          />
-        ))}
+      {/* View toggle */}
+      <div className="flex items-center gap-1 mb-3">
+        <button
+          onClick={() => handleViewToggle('kanban')}
+          className={`p-1.5 rounded ${
+            viewMode === 'kanban'
+              ? 'text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800'
+              : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400'
+          }`}
+          title="Kanban view"
+        >
+          <LayoutGrid className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => handleViewToggle('list')}
+          className={`p-1.5 rounded ${
+            viewMode === 'list'
+              ? 'text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800'
+              : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400'
+          }`}
+          title="List view"
+        >
+          <List className="w-4 h-4" />
+        </button>
       </div>
+
+      {/* Board content */}
+      {viewMode === 'kanban' ? (
+        <div className="flex gap-3 overflow-x-auto pb-4">
+          {STATUSES.map(({ key, label }) => (
+            <KanbanColumn
+              key={key}
+              status={key}
+              label={label}
+              goals={goals.filter((g) => g.status === key)}
+              members={currentBoard?.members}
+              onOpenGoal={handleOpenGoal}
+              onMoveGoal={handleMoveGoal}
+              onReorderGoals={handleReorderGoals}
+              onArchiveGoal={handleArchiveGoal}
+              onShowNewGoal={() => setCreateGoalStatus(key)}
+            />
+          ))}
+        </div>
+      ) : (
+        <ListView
+          statuses={STATUSES}
+          goals={goals}
+          members={currentBoard?.members}
+          onOpenGoal={handleOpenGoal}
+          onMoveGoal={handleMoveGoal}
+          onArchiveGoal={handleArchiveGoal}
+          onShowNewGoal={(status) => setCreateGoalStatus(status)}
+        />
+      )}
 
       {/* Archive section — collapsed by default */}
       {archivedGoals.length > 0 && (
