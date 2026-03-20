@@ -602,7 +602,7 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
                             <img
                               src={downloadUrl}
                               alt={att.filename}
-                              className="max-w-sm max-h-64 rounded border border-zinc-200 dark:border-zinc-700 cursor-pointer hover:opacity-90 transition-opacity"
+                              className="max-w-sm max-h-64 border border-zinc-200 dark:border-zinc-700 cursor-pointer hover:opacity-90 transition-opacity"
                               onError={(e) => {
                                 // If direct src fails (auth required), fetch with token
                                 const token = localStorage.getItem('agent-board-token');
@@ -616,15 +616,15 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
                               }}
                             />
                           </a>
-                          <span className="block text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">{att.filename}</span>
+                          <span className="block text-xs text-zinc-400 dark:text-zinc-500 mt-1">{att.filename}</span>
                         </div>
                       );
                     }
                     return (
-                      <div key={att.id} className="flex items-center gap-2 py-1 px-2 border border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 inline-flex">
+                      <div key={att.id} className="inline-flex items-center gap-2 py-1.5 px-2 border border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
                         <a
                           href={downloadUrl}
-                          className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+                          className="text-sm text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-200 truncate"
                           onClick={(e) => {
                             e.preventDefault();
                             const token = localStorage.getItem('agent-board-token');
