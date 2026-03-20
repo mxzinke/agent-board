@@ -156,16 +156,18 @@ attachmentsRouter.post('/goals/:goalId/attachments', async (c) => {
   return c.json(attachment, 201);
 });
 
-// Download attachment
-attachmentsRouter.get('/attachments/:id/download', async (c) => {
-  const { sub } = c.get('user');
-  const id = c.req.param('id');
-
-  const [attachment] = await db.select().from(attachments).where(eq(attachments.id, id)).limit(1);
+// Helper: download an attachment by ID, verifying access
+async function handleDownload(attachmentId: string, userId: string, expectedGoalId?: string) {
+  const [attachment] = await db.select().from(attachments).where(eq(attachments.id, attachmentId)).limit(1);
   if (!attachment) throw notFound('Attachment not found');
 
+  // If a goalId was provided, verify the attachment belongs to that goal
+  if (expectedGoalId && attachment.goalId !== expectedGoalId) {
+    throw notFound('Attachment not found for this goal');
+  }
+
   // Verify access
-  await verifyGoalAccess(attachment.goalId, sub);
+  await verifyGoalAccess(attachment.goalId, userId);
 
   let fileData: Buffer;
 
@@ -192,6 +194,18 @@ attachmentsRouter.get('/attachments/:id/download', async (c) => {
       'X-Content-Type-Options': 'nosniff',
     },
   });
+}
+
+// Download attachment
+attachmentsRouter.get('/attachments/:id/download', async (c) => {
+  const { sub } = c.get('user');
+  return handleDownload(c.req.param('id'), sub);
+});
+
+// Download attachment (alternative path scoped to goal)
+attachmentsRouter.get('/goals/:goalId/attachments/:id/download', async (c) => {
+  const { sub } = c.get('user');
+  return handleDownload(c.req.param('id'), sub, c.req.param('goalId'));
 });
 
 // Delete attachment

@@ -50,6 +50,9 @@ app.get('/apple-touch-icon.png', serveStatic({ path: './web/dist/apple-touch-ico
 app.get('/manifest.json', serveStatic({ path: './web/dist/manifest.json' }));
 app.get('/sw.js', serveStatic({ path: './web/dist/sw.js' }));
 
+// API 404 — return JSON for unmatched API routes instead of SPA HTML
+app.all('/api/*', (c) => c.json({ error: 'Not found' }, 404));
+
 // SPA fallback — serve index.html for all non-API routes
 app.get('*', serveStatic({ path: './web/dist/index.html' }));
 
