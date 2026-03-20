@@ -64,11 +64,13 @@ export interface Comment {
   authorUsername: string;
   authorDisplayName: string | null;
   authorIsAgent: boolean;
+  attachments?: Attachment[];
 }
 
 export interface Attachment {
   id: string;
   goalId: string;
+  commentId?: string | null;
   uploadedBy: string;
   filename: string;
   mimeType: string;
