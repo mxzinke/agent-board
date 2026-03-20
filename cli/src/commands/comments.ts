@@ -1,6 +1,12 @@
 import { Command } from 'commander';
 import { request } from '../lib/client';
 
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function registerCommentCommands(program: Command) {
   const comments = program.command('comments').description('Manage comments on goals');
 
@@ -19,8 +25,14 @@ export function registerCommentCommands(program: Command) {
         const who = c.authorDisplayName || c.authorUsername;
         const when = new Date(c.createdAt).toLocaleString();
         const badge = c.authorIsAgent ? ' [agent]' : '';
-        console.log(`  ${who}${badge} — ${when}`);
+        console.log(`  ${who}${badge} — ${when}  [${c.id}]`);
         console.log(`  ${c.body}`);
+        if (c.attachments && c.attachments.length > 0) {
+          for (const a of c.attachments) {
+            const size = formatSize(a.size);
+            console.log(`    📎 ${a.filename} (${size}, ${a.mimeType}) [${a.id}]`);
+          }
+        }
         console.log('');
       }
     });

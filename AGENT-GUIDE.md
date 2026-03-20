@@ -146,7 +146,7 @@ curl -X POST -H "Authorization: ApiKey $KEY" \
   https://your-instance/api/v1/boards/{boardId}/webhooks
 ```
 
-**Event types:** `goal-created`, `goal-updated`, `goal-deleted`, `goal-assigned`, `acceptance-criteria-updated`, `comment-added`
+**Event types:** `goal-created`, `goal-updated`, `goal-deleted`, `goal-assigned`, `acceptance-criteria-updated`, `comment-added`, `attachment-uploaded`, `attachment-deleted`
 
 Use `"events": "*"` for all events, or a comma-separated list like `"events": "goal-assigned,comment-added"`.
 
@@ -220,6 +220,10 @@ This pattern keeps context focused and allows parallel work on multiple goals.
 | List comments | GET | `/goals/:goalId/comments` |
 | Create comment | POST | `/goals/:goalId/comments` |
 | Delete comment | DELETE | `/goals/:goalId/comments/:id` |
+| List attachments | GET | `/goals/:goalId/attachments` |
+| Upload attachment | POST | `/goals/:goalId/attachments` (multipart/form-data) |
+| Download attachment | GET | `/attachments/:id/download` |
+| Delete attachment | DELETE | `/attachments/:id` |
 
 **Goal statuses:** `backlog` (Open) | `todo` (Planning) | `in_progress` | `review` | `done`
 

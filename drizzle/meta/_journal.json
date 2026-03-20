@@ -64,6 +64,13 @@
       "when": 1773532800000,
       "tag": "0008_replace_subtasks_with_acceptance_criteria",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1774051200000,
+      "tag": "0009_add_comment_id_to_attachments",
+      "breakpoints": true
     }
   ]
 }

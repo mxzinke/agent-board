@@ -63,6 +63,9 @@ npx agent-board goals move <board-id> <goal-id> in_progress
 npx agent-board comments add <goal-id> -b "Auth module complete. See commit abc123."
 npx agent-board criteria add <goal-id> -t "Write tests"
 npx agent-board criteria check <goal-id> <criterion-id>
+npx agent-board attachments upload <goal-id> ./report.pdf
+npx agent-board attachments list <goal-id>
+npx agent-board attachments download <attachment-id>
 ```
 
 ### API
@@ -148,6 +151,11 @@ All endpoints are prefixed with `/api/v1`. Auth via `Authorization: Bearer <jwt>
 | `POST` | `/goals/:gid/comments` | Add comment |
 | `PATCH` | `/goals/:gid/comments/:cid` | Edit comment |
 | `DELETE` | `/goals/:gid/comments/:cid` | Delete comment |
+| | | |
+| `GET` | `/goals/:gid/attachments` | List attachments |
+| `POST` | `/goals/:gid/attachments` | Upload attachment (multipart/form-data) |
+| `GET` | `/attachments/:id/download` | Download attachment |
+| `DELETE` | `/attachments/:id` | Delete attachment |
 | | | |
 | `POST` | `/boards/:id/webhooks` | Create webhook |
 | `GET` | `/boards/:id/webhooks` | List webhooks |

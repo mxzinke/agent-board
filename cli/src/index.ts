@@ -5,6 +5,7 @@ import { registerBoardCommands } from './commands/boards';
 import { registerGoalCommands } from './commands/goals';
 import { registerCommentCommands } from './commands/comments';
 import { registerCriteriaCommands } from './commands/acceptance-criteria';
+import { registerAttachmentCommands } from './commands/attachments';
 
 const program = new Command();
 
@@ -18,5 +19,6 @@ registerBoardCommands(program);
 registerGoalCommands(program);
 registerCommentCommands(program);
 registerCriteriaCommands(program);
+registerAttachmentCommands(program);
 
 program.parse();
