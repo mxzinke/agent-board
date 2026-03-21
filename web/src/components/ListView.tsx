@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronRight, Plus, Archive } from 'lucide-react';
+import { useTouchDrag } from '../hooks/useTouchDrag';
 import type { Goal, BoardMember } from '../types';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -45,6 +46,16 @@ export function ListView({
 }: ListViewProps) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
+  // Touch drag-and-drop for mobile
+  const { onTouchStart } = useTouchDrag({
+    onDrop: (goalId, targetStatus) => {
+      const goal = goals.find(g => g.id === goalId);
+      if (goal && goal.status !== targetStatus) {
+        onMoveGoal(goalId, targetStatus);
+      }
+    },
+  });
+
   const toggleCollapse = (status: string) => {
     setCollapsed((prev) => ({ ...prev, [status]: !prev[status] }));
   };
@@ -56,7 +67,7 @@ export function ListView({
         const isCollapsed = collapsed[key] ?? false;
 
         return (
-          <div key={key}>
+          <div key={key} data-status={key}>
             {/* Status header */}
             <div className="flex items-center justify-between mb-1">
               <button
@@ -103,6 +114,7 @@ export function ListView({
                       key={goal.id}
                       className="flex items-center gap-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-2 hover:border-zinc-400 dark:hover:border-zinc-500 cursor-pointer group"
                       onClick={() => onOpenGoal(goal.id)}
+                      onTouchStart={(e) => onTouchStart(e, goal.id)}
                     >
                       {/* Title + description */}
                       <div className="flex-1 min-w-0">
@@ -116,15 +128,15 @@ export function ListView({
                         )}
                       </div>
 
-                      {/* Actions */}
-                      <div className="flex items-center gap-2 sm:gap-1 flex-shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                      {/* Actions — hidden on mobile, visible on desktop hover */}
+                      <div className="hidden sm:flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                         {PREV_STATUS[key] && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               onMoveGoal(goal.id, PREV_STATUS[key]);
                             }}
-                            className="text-xs px-2.5 py-1.5 sm:px-1.5 sm:py-0.5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500"
+                            className="text-xs px-1.5 py-0.5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500"
                           >
                             &larr;
                           </button>
@@ -135,7 +147,7 @@ export function ListView({
                               e.stopPropagation();
                               onMoveGoal(goal.id, NEXT_STATUS[key]);
                             }}
-                            className="text-xs px-2.5 py-1.5 sm:px-1.5 sm:py-0.5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500"
+                            className="text-xs px-1.5 py-0.5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500"
                           >
                             &rarr;
                           </button>
@@ -145,7 +157,7 @@ export function ListView({
                             e.stopPropagation();
                             onArchiveGoal(goal.id);
                           }}
-                          className="text-xs px-2.5 py-1.5 sm:px-1.5 sm:py-0.5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500"
+                          className="text-xs px-1.5 py-0.5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500"
                           title="Archive"
                         >
                           <Archive className="w-3 h-3" />

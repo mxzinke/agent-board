@@ -5,7 +5,7 @@ import { KanbanColumn } from '../components/KanbanColumn';
 import { ListView } from '../components/ListView';
 import { InviteModal } from '../components/InviteModal';
 import { CreateGoalModal } from '../components/CreateGoalModal';
-import { Crown, Archive, ChevronRight, LayoutGrid, List, Trash2, Share2, X } from 'lucide-react';
+import { Crown, Archive, ChevronRight, LayoutGrid, List, Trash2, Share2, X, MoreHorizontal } from 'lucide-react';
 import type { BoardMember, Goal } from '../types';
 
 type ViewMode = 'kanban' | 'list';
@@ -52,6 +52,7 @@ export function Board({ navigate }: BoardProps) {
   const [showArchived, setShowArchived] = useState(false);
   const [quickAddStatus, setQuickAddStatus] = useState<string | null>(null);
   const [quickAddTitle, setQuickAddTitle] = useState('');
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(() =>
     currentBoard ? getViewPreference(currentBoard.id) : 'kanban'
   );
@@ -297,15 +298,6 @@ export function Board({ navigate }: BoardProps) {
               <List className="w-4 h-4" />
             </button>
           </div>
-          {isOwner && !editing && (
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="p-2 sm:px-3 sm:py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 text-red-500 hover:border-red-400 hover:bg-red-50 dark:hover:bg-red-950 flex items-center"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span className="hidden sm:inline ml-1">Delete</span>
-            </button>
-          )}
           <button
             onClick={() => setShowInvite(true)}
             className="p-2 sm:px-3 sm:py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-500 flex items-center"
@@ -313,6 +305,31 @@ export function Board({ navigate }: BoardProps) {
             <Share2 className="w-4 h-4" />
             <span className="hidden sm:inline ml-1">Share</span>
           </button>
+          {isOwner && !editing && (
+            <div className="relative">
+              <button
+                onClick={() => setShowMoreMenu(!showMoreMenu)}
+                className="p-2 text-sm text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400"
+                title="More options"
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+              {showMoreMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowMoreMenu(false)} />
+                  <div className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-lg min-w-[160px]">
+                    <button
+                      onClick={() => { setShowMoreMenu(false); setShowDeleteConfirm(true); }}
+                      className="w-full px-3 py-2 text-sm text-left text-red-500 hover:bg-red-50 dark:hover:bg-red-950 flex items-center gap-2"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Delete Board
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

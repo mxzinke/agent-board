@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { Plus, Archive } from 'lucide-react';
+import { useTouchDrag } from '../hooks/useTouchDrag';
 import type { Goal, BoardMember } from '../types';
 
 interface KanbanColumnProps {
@@ -51,6 +52,15 @@ export function KanbanColumn({
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
+
+  // Touch drag-and-drop for mobile
+  const { onTouchStart } = useTouchDrag({
+    onDrop: (goalId, targetStatus) => {
+      if (targetStatus !== status) {
+        onMoveGoal(goalId, targetStatus);
+      }
+    },
+  });
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -135,7 +145,7 @@ export function KanbanColumn({
   );
 
   return (
-    <div className="flex-shrink-0 w-64">
+    <div className="flex-shrink-0 w-64" data-status={status}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 ${STATUS_COLORS[status]}`} />
@@ -165,6 +175,7 @@ export function KanbanColumn({
               draggable
               onDragStart={(e) => handleDragStart(e, goal)}
               onDragEnd={handleDragEnd}
+              onTouchStart={(e) => onTouchStart(e, goal.id)}
               className={`border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 p-3 cursor-grab active:cursor-grabbing hover:border-zinc-400 dark:hover:border-zinc-500 group ${
                 draggedId === goal.id ? 'opacity-40' : ''
               }`}
@@ -190,12 +201,12 @@ export function KanbanColumn({
               {goal.description && (
                 <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 line-clamp-2">{goal.description}</p>
               )}
-              {/* Move & archive buttons */}
-              <div className="flex gap-2 sm:gap-1 mt-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+              {/* Move & archive buttons — hidden on mobile, visible on desktop hover */}
+              <div className="hidden sm:flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 {PREV_STATUS[status] && (
                   <button
                     onClick={(e) => { e.stopPropagation(); onMoveGoal(goal.id, PREV_STATUS[status]); }}
-                    className="text-xs px-2.5 py-1.5 sm:px-1.5 sm:py-0.5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500"
+                    className="text-xs px-1.5 py-0.5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500"
                   >
                     &larr;
                   </button>
@@ -203,14 +214,14 @@ export function KanbanColumn({
                 {NEXT_STATUS[status] && (
                   <button
                     onClick={(e) => { e.stopPropagation(); onMoveGoal(goal.id, NEXT_STATUS[status]); }}
-                    className="text-xs px-2.5 py-1.5 sm:px-1.5 sm:py-0.5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500"
+                    className="text-xs px-1.5 py-0.5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500"
                   >
                     &rarr;
                   </button>
                 )}
                 <button
                   onClick={(e) => { e.stopPropagation(); onArchiveGoal(goal.id); }}
-                  className="text-xs px-2.5 py-1.5 sm:px-1.5 sm:py-0.5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500 ml-auto"
+                  className="text-xs px-1.5 py-0.5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500 ml-auto"
                   title="Archive"
                 >
                   <Archive className="w-3 h-3" />
