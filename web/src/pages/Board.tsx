@@ -10,11 +10,15 @@ import type { BoardMember, Goal } from '../types';
 
 type ViewMode = 'kanban' | 'list';
 
+function getDefaultViewMode(): ViewMode {
+  return window.matchMedia('(max-width: 640px)').matches ? 'list' : 'kanban';
+}
+
 function getViewPreference(boardId: string): ViewMode {
   try {
-    return (localStorage.getItem(`board-view-${boardId}`) as ViewMode) || 'kanban';
+    return (localStorage.getItem(`board-view-${boardId}`) as ViewMode) || getDefaultViewMode();
   } catch {
-    return 'kanban';
+    return getDefaultViewMode();
   }
 }
 
@@ -245,7 +249,32 @@ export function Board({ navigate }: BoardProps) {
             </div>
           )}
         </div>
-        <div className="flex gap-2 ml-4">
+        <div className="flex items-center gap-2 ml-4">
+          {/* View toggle */}
+          <div className="flex items-center border border-zinc-200 dark:border-zinc-700 rounded-sm">
+            <button
+              onClick={() => handleViewToggle('kanban')}
+              className={`p-1.5 ${
+                viewMode === 'kanban'
+                  ? 'text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800'
+                  : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400'
+              }`}
+              title="Kanban view"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handleViewToggle('list')}
+              className={`p-1.5 ${
+                viewMode === 'list'
+                  ? 'text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800'
+                  : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400'
+              }`}
+              title="List view"
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
           {isOwner && !editing && (
             <button
               onClick={() => setShowDeleteConfirm(true)}
@@ -326,32 +355,6 @@ export function Board({ navigate }: BoardProps) {
             )}
           </div>
         ))}
-      </div>
-
-      {/* View toggle */}
-      <div className="flex items-center gap-1 mb-3">
-        <button
-          onClick={() => handleViewToggle('kanban')}
-          className={`p-1.5 rounded ${
-            viewMode === 'kanban'
-              ? 'text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800'
-              : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400'
-          }`}
-          title="Kanban view"
-        >
-          <LayoutGrid className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() => handleViewToggle('list')}
-          className={`p-1.5 rounded ${
-            viewMode === 'list'
-              ? 'text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800'
-              : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400'
-          }`}
-          title="List view"
-        >
-          <List className="w-4 h-4" />
-        </button>
       </div>
 
       {/* Board content */}
