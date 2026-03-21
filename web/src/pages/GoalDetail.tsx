@@ -326,7 +326,7 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
           <button
             key={s}
             onClick={() => handleStatusChange(s)}
-            className={`px-2 py-1 text-xs border ${
+            className={`px-3 py-2 text-sm sm:px-2 sm:py-1 sm:text-xs border ${
               selectedGoal.status === s
                 ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 border-zinc-900 dark:border-zinc-100'
                 : 'border-zinc-200 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 hover:border-zinc-400 dark:hover:border-zinc-500'
@@ -666,7 +666,7 @@ export function GoalDetail({ navigate }: GoalDetailProps) {
           <button
             onClick={handleAddComment}
             disabled={!newComment.trim()}
-            className="self-end px-3 py-2 text-xs bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-zinc-200 disabled:opacity-30"
+            className="self-end px-4 py-2.5 text-sm sm:px-3 sm:py-2 sm:text-xs bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-zinc-200 disabled:opacity-30"
           >
             Send
           </button>

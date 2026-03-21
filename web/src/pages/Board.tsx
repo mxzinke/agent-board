@@ -5,7 +5,7 @@ import { KanbanColumn } from '../components/KanbanColumn';
 import { ListView } from '../components/ListView';
 import { InviteModal } from '../components/InviteModal';
 import { CreateGoalModal } from '../components/CreateGoalModal';
-import { Crown, Archive, ChevronRight, LayoutGrid, List } from 'lucide-react';
+import { Crown, Archive, ChevronRight, LayoutGrid, List, Trash2, Share2, X } from 'lucide-react';
 import type { BoardMember, Goal } from '../types';
 
 type ViewMode = 'kanban' | 'list';
@@ -50,6 +50,8 @@ export function Board({ navigate }: BoardProps) {
   const [editDescription, setEditDescription] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [quickAddStatus, setQuickAddStatus] = useState<string | null>(null);
+  const [quickAddTitle, setQuickAddTitle] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>(() =>
     currentBoard ? getViewPreference(currentBoard.id) : 'kanban'
   );
@@ -190,6 +192,26 @@ export function Board({ navigate }: BoardProps) {
     navigate('/b/' + currentBoard.id + '/' + goalId);
   };
 
+  const handleShowNewGoal = (status: string) => {
+    if (window.matchMedia('(max-width: 640px)').matches) {
+      setQuickAddStatus(status);
+      setQuickAddTitle('');
+    } else {
+      setCreateGoalStatus(status);
+    }
+  };
+
+  const handleQuickAdd = async () => {
+    if (!quickAddTitle.trim() || !currentBoard || !quickAddStatus) return;
+    await api.createGoal(currentBoard.id, {
+      title: quickAddTitle.trim(),
+      status: quickAddStatus as Goal['status'],
+    });
+    setQuickAddTitle('');
+    setQuickAddStatus(null);
+    await fetchGoals(currentBoard.id);
+  };
+
   if (loading) return <div className="text-zinc-400 dark:text-zinc-500 text-sm">Loading...</div>;
 
   return (
@@ -278,16 +300,18 @@ export function Board({ navigate }: BoardProps) {
           {isOwner && !editing && (
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="px-3 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 text-red-500 hover:border-red-400 hover:bg-red-50 dark:hover:bg-red-950"
+              className="p-2 sm:px-3 sm:py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 text-red-500 hover:border-red-400 hover:bg-red-50 dark:hover:bg-red-950 flex items-center"
             >
-              Delete
+              <Trash2 className="w-4 h-4" />
+              <span className="hidden sm:inline ml-1">Delete</span>
             </button>
           )}
           <button
             onClick={() => setShowInvite(true)}
-            className="px-3 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-500"
+            className="p-2 sm:px-3 sm:py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-500 flex items-center"
           >
-            Share
+            <Share2 className="w-4 h-4" />
+            <span className="hidden sm:inline ml-1">Share</span>
           </button>
         </div>
       </div>
@@ -318,7 +342,7 @@ export function Board({ navigate }: BoardProps) {
       )}
 
       {/* Members bar */}
-      <div className="flex gap-2 mb-4 text-xs text-zinc-400 dark:text-zinc-500 flex-wrap">
+      <div className="hidden sm:flex gap-2 mb-4 text-xs text-zinc-400 dark:text-zinc-500 flex-wrap">
         {currentBoard?.members?.map((m: BoardMember) => (
           <div key={m.userId} className="flex items-center gap-1 border border-zinc-100 dark:border-zinc-800 px-2 py-0.5 bg-zinc-50 dark:bg-zinc-900 group">
             <span className="text-xs text-zinc-600 dark:text-zinc-400">
@@ -357,6 +381,37 @@ export function Board({ navigate }: BoardProps) {
         ))}
       </div>
 
+      {/* Quick-add for mobile */}
+      {quickAddStatus && (
+        <div className="flex gap-2 mb-4 sm:hidden">
+          <input
+            type="text"
+            placeholder="Goal title..."
+            value={quickAddTitle}
+            onChange={(e) => setQuickAddTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleQuickAdd();
+              if (e.key === 'Escape') { setQuickAddStatus(null); setQuickAddTitle(''); }
+            }}
+            autoFocus
+            className="flex-1 px-3 py-2 text-sm border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
+          />
+          <button
+            onClick={handleQuickAdd}
+            disabled={!quickAddTitle.trim()}
+            className="px-3 py-2 text-sm bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-zinc-200 disabled:opacity-30"
+          >
+            Add
+          </button>
+          <button
+            onClick={() => { setQuickAddStatus(null); setQuickAddTitle(''); }}
+            className="px-2 py-2 text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Board content */}
       {viewMode === 'kanban' ? (
         <div className="flex gap-3 overflow-x-auto pb-4">
@@ -371,7 +426,7 @@ export function Board({ navigate }: BoardProps) {
               onMoveGoal={handleMoveGoal}
               onReorderGoals={handleReorderGoals}
               onArchiveGoal={handleArchiveGoal}
-              onShowNewGoal={() => setCreateGoalStatus(key)}
+              onShowNewGoal={() => handleShowNewGoal(key)}
             />
           ))}
         </div>
@@ -383,7 +438,7 @@ export function Board({ navigate }: BoardProps) {
           onOpenGoal={handleOpenGoal}
           onMoveGoal={handleMoveGoal}
           onArchiveGoal={handleArchiveGoal}
-          onShowNewGoal={(status) => setCreateGoalStatus(status)}
+          onShowNewGoal={(status) => handleShowNewGoal(status)}
         />
       )}
 

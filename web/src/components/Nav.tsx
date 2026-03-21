@@ -74,7 +74,7 @@ export function Nav({ navigate, path }: NavProps) {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3 sm:gap-4 text-sm">
+        <div className="flex items-center gap-2 sm:gap-4 text-sm">
           {currentBoard && sseStatus !== 'connected' && (
             <span
               className="flex items-center gap-1.5 text-xs text-amber-500 dark:text-amber-400"
