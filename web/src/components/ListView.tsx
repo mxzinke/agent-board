@@ -130,8 +130,8 @@ export function ListView({
                         )}
                       </div>
 
-                      {/* Actions — hidden on mobile, visible on desktop hover */}
-                      <div className="hidden sm:flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* Actions — hidden on touch devices, visible on pointer (mouse) hover */}
+                      <div className="hidden pointer-fine:flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                         {PREV_STATUS[key] && (
                           <button
                             onClick={(e) => {

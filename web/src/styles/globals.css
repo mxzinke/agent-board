@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
+@custom-variant pointer-fine (@media (pointer: fine));
+@custom-variant touch (@media (pointer: coarse));
 
 @theme {
   --color-accent: #18181b;

@@ -205,8 +205,8 @@ export function KanbanColumn({
                 {goal.description && (
                   <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 line-clamp-2">{goal.description}</p>
                 )}
-                {/* Move & archive buttons — hidden on mobile, visible on desktop hover */}
-                <div className="hidden sm:flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                {/* Move & archive buttons — hidden on touch devices, visible on pointer (mouse) hover */}
+                <div className="hidden pointer-fine:flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   {PREV_STATUS[status] && (
                     <button
                       onClick={(e) => { e.stopPropagation(); onMoveGoal(goal.id, PREV_STATUS[status]); }}

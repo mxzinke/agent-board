@@ -11,7 +11,12 @@ import type { BoardMember, Goal } from '../types';
 type ViewMode = 'kanban' | 'list';
 
 function getDefaultViewMode(): ViewMode {
+  // Phones get list view (narrow), tablets and desktops get kanban
   return window.matchMedia('(max-width: 640px)').matches ? 'list' : 'kanban';
+}
+
+function isMobilePhone(): boolean {
+  return window.matchMedia('(max-width: 640px)').matches;
 }
 
 function getViewPreference(boardId: string): ViewMode {
@@ -194,7 +199,7 @@ export function Board({ navigate }: BoardProps) {
   };
 
   const handleShowNewGoal = (status: string) => {
-    if (window.matchMedia('(max-width: 640px)').matches) {
+    if (isMobilePhone()) {
       setQuickAddStatus(status);
       setQuickAddTitle('');
     } else {

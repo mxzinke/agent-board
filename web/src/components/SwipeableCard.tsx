@@ -35,13 +35,13 @@ export function SwipeableCard({
     cancelTimer: ReturnType<typeof setTimeout> | null;
   } | null>(null);
 
-  const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches;
+  const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     // Always forward to external handler (for long-press drag)
     externalTouchStart?.(e);
 
-    if (!isMobile) return;
+    if (!isTouchDevice) return;
 
     const touch = e.touches[0];
     // Cancel swipe tracking if direction not decided within 200ms
@@ -63,7 +63,7 @@ export function SwipeableCard({
       cancelTimer,
     };
     setTransitioning(false);
-  }, [externalTouchStart, isMobile]);
+  }, [externalTouchStart, isTouchDevice]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     const s = stateRef.current;
@@ -142,7 +142,7 @@ export function SwipeableCard({
   }, []);
 
   // On mobile, show the archive background when swiping
-  const showArchiveBg = isMobile && translateX < -10;
+  const showArchiveBg = isTouchDevice && translateX < -10;
   const archiveProgress = Math.min(1, Math.abs(translateX) / SWIPE_THRESHOLD);
 
   return (
