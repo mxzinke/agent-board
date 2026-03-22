@@ -65,3 +65,12 @@ body {
 .dark *:hover::-webkit-scrollbar-thumb:hover {
   background: #52525b;
 }
+
+/* Prevent text selection on touch devices for goal cards */
+@media (pointer: coarse) {
+  [data-status] {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+}

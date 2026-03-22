@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { Plus, Archive } from 'lucide-react';
 import { useTouchDrag } from '../hooks/useTouchDrag';
+import { SwipeableCard } from './SwipeableCard';
 import type { Goal, BoardMember } from '../types';
 
 interface KanbanColumnProps {
@@ -170,64 +171,68 @@ export function KanbanColumn({
         {goals.map((goal, index) => (
           <div key={goal.id}>
             {dropIndex === index && insertIndicator}
-            <div
-              ref={(el) => { if (el) cardRefs.current.set(goal.id, el); }}
-              draggable
-              onDragStart={(e) => handleDragStart(e, goal)}
-              onDragEnd={handleDragEnd}
+            <SwipeableCard
+              onArchive={() => onArchiveGoal(goal.id)}
               onTouchStart={(e) => onTouchStart(e, goal.id)}
-              className={`border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 p-3 cursor-grab active:cursor-grabbing hover:border-zinc-400 dark:hover:border-zinc-500 group ${
-                draggedId === goal.id ? 'opacity-40' : ''
-              }`}
-              onClick={() => onOpenGoal(goal.id)}
             >
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-sm text-zinc-900 dark:text-zinc-100 font-medium leading-snug">{goal.title}</p>
-                {goal.assigneeId && (() => {
-                  const member = members?.find((m) => m.userId === goal.assigneeId);
-                  if (!member) return null;
-                  const name = member.displayName || member.username || '';
-                  const initial = name.charAt(0).toUpperCase();
-                  return (
-                    <span
-                      className="flex-shrink-0 w-5 h-5 bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 text-xs font-medium flex items-center justify-center rounded-full"
-                      title={name}
+              <div
+                ref={(el) => { if (el) cardRefs.current.set(goal.id, el); }}
+                draggable
+                onDragStart={(e) => handleDragStart(e, goal)}
+                onDragEnd={handleDragEnd}
+                className={`border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 p-3 cursor-grab active:cursor-grabbing hover:border-zinc-400 dark:hover:border-zinc-500 group ${
+                  draggedId === goal.id ? 'opacity-40' : ''
+                }`}
+                onClick={() => onOpenGoal(goal.id)}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm text-zinc-900 dark:text-zinc-100 font-medium leading-snug">{goal.title}</p>
+                  {goal.assigneeId && (() => {
+                    const member = members?.find((m) => m.userId === goal.assigneeId);
+                    if (!member) return null;
+                    const name = member.displayName || member.username || '';
+                    const initial = name.charAt(0).toUpperCase();
+                    return (
+                      <span
+                        className="flex-shrink-0 w-5 h-5 bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 text-xs font-medium flex items-center justify-center rounded-full"
+                        title={name}
+                      >
+                        {initial}
+                      </span>
+                    );
+                  })()}
+                </div>
+                {goal.description && (
+                  <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 line-clamp-2">{goal.description}</p>
+                )}
+                {/* Move & archive buttons — hidden on mobile, visible on desktop hover */}
+                <div className="hidden sm:flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {PREV_STATUS[status] && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onMoveGoal(goal.id, PREV_STATUS[status]); }}
+                      className="text-xs px-1.5 py-0.5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500"
                     >
-                      {initial}
-                    </span>
-                  );
-                })()}
-              </div>
-              {goal.description && (
-                <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 line-clamp-2">{goal.description}</p>
-              )}
-              {/* Move & archive buttons — hidden on mobile, visible on desktop hover */}
-              <div className="hidden sm:flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                {PREV_STATUS[status] && (
+                      &larr;
+                    </button>
+                  )}
+                  {NEXT_STATUS[status] && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onMoveGoal(goal.id, NEXT_STATUS[status]); }}
+                      className="text-xs px-1.5 py-0.5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500"
+                    >
+                      &rarr;
+                    </button>
+                  )}
                   <button
-                    onClick={(e) => { e.stopPropagation(); onMoveGoal(goal.id, PREV_STATUS[status]); }}
-                    className="text-xs px-1.5 py-0.5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500"
+                    onClick={(e) => { e.stopPropagation(); onArchiveGoal(goal.id); }}
+                    className="text-xs px-1.5 py-0.5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500 ml-auto"
+                    title="Archive"
                   >
-                    &larr;
+                    <Archive className="w-3 h-3" />
                   </button>
-                )}
-                {NEXT_STATUS[status] && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onMoveGoal(goal.id, NEXT_STATUS[status]); }}
-                    className="text-xs px-1.5 py-0.5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500"
-                  >
-                    &rarr;
-                  </button>
-                )}
-                <button
-                  onClick={(e) => { e.stopPropagation(); onArchiveGoal(goal.id); }}
-                  className="text-xs px-1.5 py-0.5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500 ml-auto"
-                  title="Archive"
-                >
-                  <Archive className="w-3 h-3" />
-                </button>
+                </div>
               </div>
-            </div>
+            </SwipeableCard>
           </div>
         ))}
         {dropIndex === goals.length && insertIndicator}

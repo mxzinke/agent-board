@@ -109,6 +109,9 @@ export function useTouchDrag({ onDrop, statusAttr = 'data-status' }: UseTouchDra
       s.active = true;
       if (navigator.vibrate) navigator.vibrate(30);
 
+      // Clear any text selection caused by long-press
+      window.getSelection()?.removeAllRanges();
+
       // Create ghost
       const r = el.getBoundingClientRect();
       const ghost = el.cloneNode(true) as HTMLElement;

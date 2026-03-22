@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ChevronRight, Plus, Archive } from 'lucide-react';
 import { useTouchDrag } from '../hooks/useTouchDrag';
+import { SwipeableCard } from './SwipeableCard';
 import type { Goal, BoardMember } from '../types';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -110,11 +111,12 @@ export function ListView({
                     : null;
 
                   return (
-                    <div
+                    <SwipeableCard
                       key={goal.id}
                       className="flex items-center gap-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-2 hover:border-zinc-400 dark:hover:border-zinc-500 cursor-pointer group"
                       onClick={() => onOpenGoal(goal.id)}
                       onTouchStart={(e) => onTouchStart(e, goal.id)}
+                      onArchive={() => onArchiveGoal(goal.id)}
                     >
                       {/* Title + description */}
                       <div className="flex-1 min-w-0">
@@ -173,7 +175,7 @@ export function ListView({
                           {(assignee.displayName || assignee.username || '').charAt(0).toUpperCase()}
                         </span>
                       )}
-                    </div>
+                    </SwipeableCard>
                   );
                 })}
               </div>
