@@ -1,4 +1,6 @@
 FROM oven/bun:1-alpine AS base
+# Upgrade all Alpine packages to patch OS-level CVEs (openssl, musl, zlib etc.)
+RUN apk update && apk upgrade --no-cache
 WORKDIR /app
 
 # Install dependencies
