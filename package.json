@@ -21,6 +21,7 @@
     "jose": "^6",
     "nanoid": "^5",
     "postgres": "^3",
+    "posthog-node": "^5.33.4",
     "zod": "^3"
   },
   "devDependencies": {

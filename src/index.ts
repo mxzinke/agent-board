@@ -1,3 +1,7 @@
+import { captureException, installGlobalErrorHandlers } from './posthog';
+
+installGlobalErrorHandlers();
+
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
@@ -36,9 +40,13 @@ app.route('/api/v1', api);
 // Error handling
 app.onError((err, c) => {
   if (err instanceof HTTPException) {
+    if (err.status >= 500) {
+      captureException(err, { route: c.req.path, method: c.req.method, metadata: { statusCode: err.status } });
+    }
     return c.json({ error: err.message }, err.status);
   }
   console.error('Unhandled error:', err);
+  captureException(err, { route: c.req.path, method: c.req.method, handled: false });
   return c.json({ error: 'Internal server error' }, 500);
 });
 
