@@ -237,7 +237,7 @@ Here's how to integrate with Claude Code (or similar AI coding agents):
 BOARD_ID="$1"
 GOAL_ID="$2"
 API_KEY="$(cat ~/secrets/agent-board-api-key)"
-BASE="https://board.unclutter.pro/api/v1"
+BASE="https://your-instance.example/api/v1"
 AUTH="Authorization: ApiKey $API_KEY"
 
 # Read the goal

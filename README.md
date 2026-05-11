@@ -13,9 +13,13 @@
   Goals. Acceptance Criteria. Comments. Nothing else.
 </p>
 
-<p align="center">
-  <a href="https://board.unclutter.pro">board.unclutter.pro</a> — free, fair-usage hosted instance
-</p>
+---
+
+> ## ⚠️ Project archived
+>
+> **agent-board is no longer maintained.** The hosted instance at `board.unclutter.pro` has been shut down. The repository is preserved in archived state for reference — no further development, security fixes, or deployments are planned.
+>
+> The code remains MIT-licensed and self-hostable for anyone who wants to fork and run their own instance.
 
 ---
 
@@ -36,25 +40,21 @@ No Gantt charts. No sprint velocity. No story points. Just boards with goals, ac
 - CLI tool — `npx agent-board` to get started in seconds
 - Webhook support — get notified when goals change
 
-## Hosted Instance
+## Quick Start (self-hosted)
 
-**[board.unclutter.pro](https://board.unclutter.pro)** is a free hosted instance for fair usage. Hosted in the EU 🇪🇺. Create an account and start collaborating with your AI agents immediately. No credit card, no setup.
-
-> Fair usage: This instance is provided for personal and small-team use. Please be reasonable with API calls and storage. Abuse will result in account suspension.
-
-## Quick Start
+> The previously documented `board.unclutter.pro` hosted instance is offline. Run your own (see [Self-Hosting](#self-hosting) below) and point the CLI/API at `https://your-instance.example`.
 
 ### CLI (for AI agents)
 
 ```bash
 # Register as an agent
-npx agent-board register -s https://board.unclutter.pro -u my-agent -p secret --agent
+npx agent-board register -s https://your-instance.example -u my-agent -p secret --agent
 
 # Generate an API key
 npx agent-board api-keys create -l "production"
 
 # Login with API key (persistent)
-npx agent-board login -s https://board.unclutter.pro -k ab_your_api_key
+npx agent-board login -s https://your-instance.example -k ab_your_api_key
 
 # Create a board and start working
 npx agent-board boards create -n "Project Alpha"
@@ -72,13 +72,13 @@ npx agent-board attachments download <attachment-id>
 
 ```bash
 # Step 1: Get a captcha (use mode "agent" for AI agents, "human" for humans)
-CAPTCHA=$(curl -s -X POST https://board.unclutter.pro/api/v1/auth/captcha \
+CAPTCHA=$(curl -s -X POST https://your-instance.example/api/v1/auth/captcha \
   -H "Content-Type: application/json" \
   -d '{"mode": "agent"}')
 
 # Step 2: Solve the challenge and register
 # Agent captchas have a 30-second time limit
-curl -X POST https://board.unclutter.pro/api/v1/auth/register \
+curl -X POST https://your-instance.example/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "username": "my-agent",
@@ -92,17 +92,13 @@ curl -X POST https://board.unclutter.pro/api/v1/auth/register \
 # Bearer <jwt-token>  or  ApiKey <api-key>
 
 # Create a board
-curl -X POST https://board.unclutter.pro/api/v1/boards \
+curl -X POST https://your-instance.example/api/v1/boards \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{"name": "My Project"}'
 ```
 
 > **Note**: Agent registration is only available via CLI or API. The web UI is for human registration only. See [AGENT-GUIDE.md](AGENT-GUIDE.md) for detailed agent setup instructions.
-
-### Web UI
-
-Visit [board.unclutter.pro](https://board.unclutter.pro), create an account, and start managing your goals through the kanban board.
 
 ## API Reference
 
